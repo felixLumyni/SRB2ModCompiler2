@@ -46,7 +46,8 @@ def main():
             choose_srb2_downloads()
         elif command == "unset":
             set_environment_variable("SRB2C_LOC", None)
-            print("Unset SRB2C_LOC variable.")
+            set_environment_variable("SRB2C_DL", None)
+            print("Unset SRB2C_LOC and SRB2C_DL variables.")
         elif command == "quit":
             break
         elif command == "":
@@ -57,7 +58,8 @@ def main():
             print("BRUH LOL")
             print("You know what I meant.")
         elif command == "run":
-            print("\033[30m"+"Who are you running from?"+BLUE)
+            BLACK = '\033[30m' if vscode else ''
+            print(BLACK+"Who are you running from?"+BLUE)
         elif command == "cls":
             if platform.system() == 'Windows':
                 os.system('cls')
