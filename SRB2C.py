@@ -99,6 +99,7 @@ def get_environment_variable(variable):
             pass
         finally:
             winreg.CloseKey(key)
+    else:
         os.environ[variable] = sysvar
 
     return sysvar
