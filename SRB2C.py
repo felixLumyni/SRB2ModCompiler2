@@ -75,6 +75,7 @@ def run():
         currentdir = os.path.dirname(__file__)
         basedirname = os.path.basename(currentdir)
         pk3name = "_"+basedirname+".pk3"
+        print("Zipping, please wait a moment...")
         create_or_update_zip(currentdir, srb2_dl, pk3name)
         if os.path.exists(os.path.join(srb2_dl, pk3name)):
             print(pk3name+" (This script's directory) was created/updated in your SRB2 directory!")
@@ -87,7 +88,10 @@ def run():
             args = [srb2_loc, "-skipintro", "-file", pk3name]
             subprocess.Popen(args, cwd=os.path.dirname(srb2_loc))
     else:
-        print("SRB2C_LOC system variable not set. Please run 'set' to set it.")
+        vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
+        GREEN = '\033[32m' if vscode else ''
+        RESETCOLOR = '\033[0m' if vscode else ''
+        print(f"SRB2C_LOC system variable not set. Please run '{GREEN}set{RESETCOLOR}' to set it.")
 
 def get_environment_variable(variable):
     sysvar = os.getenv(variable)
