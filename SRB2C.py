@@ -90,7 +90,7 @@ def main():
 
 def run():
     srb2_loc = get_environment_variable("SRB2C_LOC")
-    srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.dirname(srb2_dl)
+    srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.dirname(srb2_loc)
     if srb2_loc:
         currentdir = os.path.dirname(__file__)
         basedirname = os.path.basename(currentdir)
@@ -104,7 +104,8 @@ def run():
 
         args = [srb2_loc, "-file", pk3name]
         args.extend(extraargs)
-        print("Zipping, please wait a moment...")
+        #now = datetime.datetime.now()
+        print(f"Zipping '{basedirname}', please wait a moment...")
         create_or_update_zip(currentdir, srb2_dl, pk3name)
         if os.path.exists(os.path.join(srb2_dl, pk3name)):
             print(pk3name+" (This script's directory) was created/updated in your SRB2 directory!")
@@ -178,6 +179,7 @@ def file_explorer(file_types):
 
     root = Tk()
     root.withdraw()
+    root.attributes('-topmost', True)
 
     file_path = filedialog.askopenfilename(filetypes=file_types)
 
@@ -190,6 +192,7 @@ def directory_explorer():
 
     root = Tk()
     root.withdraw()
+    root.attributes('-topmost', True)
 
     directory_path = filedialog.askdirectory()
 
