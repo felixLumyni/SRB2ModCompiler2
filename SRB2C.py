@@ -31,9 +31,10 @@ def main():
         if command == "help":
             print("Available commands:")
             print(f"  {GREEN}<literally nothing>{BLUE} - Compile this script's directory into a mod and run it in your exe from the system variable!")
-            print(f"  {GREEN}path{BLUE} - Show the paths for the system variables")
-            print(f"  {GREEN}set{BLUE} - Update the system variable")
+            print(f"  {GREEN}set{BLUE} - Update the system variable that (necessary so this script knows where your SRB2 is)")
+            print(f"  {GREEN}path{BLUE} - Show the paths for both system variables")
             print(f"  {GREEN}downloads{BLUE} - Update the secondary and optional system variable that determines where your files will be saved")
+            print(f"  {GREEN}args{BLUE} - Update your launch parameters as a file! (also optional)")
             print(f"  {GREEN}quit{BLUE} - Exit the program")
         elif command == "path":
             srb2_loc = get_environment_variable("SRB2C_LOC")
@@ -48,6 +49,25 @@ def main():
             set_environment_variable("SRB2C_LOC", None)
             set_environment_variable("SRB2C_DL", None)
             print("Unset SRB2C_LOC and SRB2C_DL variables.")
+        elif command == "args":
+            print("Used to launch the game with special settings. DEFAULT: -skipintro")
+            print("NOTE: Regardless of what parameters you type in here, the script will always use the -file <MOD> parameter to run your mod")
+            print('Example: -skipintro -server +skin Tails +color Rosy +wait 1 -warp tutorial +downloading off')
+            print("(If you're still confused, refer to the 'command line parameters' page from the SRB2 Wiki)")
+            command = input(RESETCOLOR+">> ").lower()
+            print(BLUE, end="")
+            if command == "":
+                print("Operation cancelled by user.")
+            else:
+                params = []
+                params.extend(command.split())
+                filename = ".SRB2C_ARGS"
+                with open(filename, "w") as file:
+                    for i, param in enumerate(params):
+                        file.write(param)
+                        if i != len(params) - 1:
+                            file.write(" ")
+                print(filename,"file was created/updated (in the same directory as this script)!")
         elif command == "quit":
             break
         elif command == "":
@@ -75,18 +95,24 @@ def run():
         currentdir = os.path.dirname(__file__)
         basedirname = os.path.basename(currentdir)
         pk3name = "_"+basedirname+".pk3"
+        try:
+            with open(".SRB2C_ARGS", "r") as file:
+                extraargs = file.read().split()
+        except FileNotFoundError:
+            print(".SRB2C_ARGS file not present, using default parameter: -skipintro")
+            extraargs = ["-skipintro"]
+
+        args = [srb2_loc, "-file", pk3name]
+        args.extend(extraargs) #TODO: ?
         print("Zipping, please wait a moment...")
         create_or_update_zip(currentdir, srb2_dl, pk3name)
         if os.path.exists(os.path.join(srb2_dl, pk3name)):
             print(pk3name+" (This script's directory) was created/updated in your SRB2 directory!")
             print("Running SRB2 with that mod. Happy testing!")
-            args = [srb2_loc,"-skipintro","-file",pk3name]
-            subprocess.Popen(args, cwd=os.path.dirname(srb2_loc))
         else:
             print("Hm... I couldn't detect a pk3 file, maybe I don't have file writing permissions?")
             print("Running SRB2 anyway.")
-            args = [srb2_loc, "-skipintro", "-file", pk3name]
-            subprocess.Popen(args, cwd=os.path.dirname(srb2_loc))
+        subprocess.Popen(args, cwd=os.path.dirname(srb2_loc))
     else:
         vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
         GREEN = '\033[32m' if vscode else ''
