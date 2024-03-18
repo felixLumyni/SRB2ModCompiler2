@@ -103,7 +103,7 @@ def run():
             extraargs = ["-skipintro"]
 
         args = [srb2_loc, "-file", pk3name]
-        args.extend(extraargs) #TODO: ?
+        args.extend(extraargs)
         print("Zipping, please wait a moment...")
         create_or_update_zip(currentdir, srb2_dl, pk3name)
         if os.path.exists(os.path.join(srb2_dl, pk3name)):
