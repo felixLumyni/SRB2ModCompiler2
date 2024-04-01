@@ -1,5 +1,5 @@
 '''
-# SRB2Compiler v2-PRERELEASE by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v2 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/ and https://www.7-zip.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -21,7 +21,7 @@ def main():
     RESETCOLOR = '\033[0m' if vscode else ''
     set = GREEN+"set" if get_environment_variable("SRB2C_LOC") else RED+"unset"
     print(BLUE, end="")
-    print(f"Welcome to SRB2Compiler v2! Your system variable is {set}{BLUE}.")
+    print(f"Welcome to SRB2ModCompiler v2! Your system variable is {set}{BLUE}.")
     print(f"Type '{GREEN}help{BLUE}' to see available commands.")
     
     while True:
@@ -133,7 +133,7 @@ def get_environment_variable(variable):
         finally:
             winreg.CloseKey(key)
     else:
-        os.environ[variable] = sysvar
+        return os.environ.get(variable)
 
     return sysvar
 

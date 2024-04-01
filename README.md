@@ -1,4 +1,4 @@
-# SRB2Compiler v2
+# SRB2ModCompiler v2
 A python script that enhances your [SRB2](https://www.srb2.org/) modding workflow!
 
 ## How do I download just the script?
