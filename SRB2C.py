@@ -1,6 +1,6 @@
 '''
 # SRB2ModCompiler v2 by Lumyni (felixlumyni on discord)
-# Requires https://www.python.org/ and https://www.7-zip.org/
+# Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
 
