@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v2 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v2.1 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -8,10 +8,12 @@ import os
 import platform
 import subprocess
 if platform.system() == "Windows": import winreg
+import datetime
 #for zipping:
 import io
 import zipfile
-import filecmp
+
+runcount = 0
 
 def main():
     vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
@@ -50,10 +52,11 @@ def main():
             set_environment_variable("SRB2C_DL", None)
             print("Unset SRB2C_LOC and SRB2C_DL variables.")
         elif command == "args":
-            print("Used to launch the game with special settings. DEFAULT: -skipintro")
-            print("NOTE: Regardless of what parameters you type in here, the script will always use the -file <MOD> parameter to run your mod")
-            print('Example: -skipintro -server +skin Tails +color Rosy +wait 1 -warp tutorial +downloading off')
-            print("(If you're still confused, refer to the 'command line parameters' page from the SRB2 Wiki)")
+            print("- Used to launch the game with special settings. DEFAULT: -skipintro")
+            print("- NOTE: Regardless of what parameters you type in here, the script will always use the -file <MOD> parameter to run your mod")
+            print('- Example: -skipintro -server +skin Tails +color Rosy +wait 1 -warp tutorial +downloading off')
+            print("- (If you're still confused, refer to the 'command line parameters' page from the SRB2 Wiki)")
+            print("- If you wish to cancel, simply press enter without typing anything")
             command = input(RESETCOLOR+">> ").lower()
             print(BLUE, end="")
             if command == "":
@@ -89,38 +92,65 @@ def main():
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
 
 def run():
+    """
+    I'm adding this comment because this function does a lot of things:
+    - Requires the enviroment variable ``SRB2C_LOC``, which points to the user's SRB2 executable (if not provided, will return a warning)
+    - Tries to read the ``.SRB2C_ARGS`` file (in the same directory as this script) and store its contents as launch parameters.
+        - If the file is not found, it will default to ``-skipintro``
+    - It will zip the current directory in the ``SRB2C_DL`` enviroment variable
+        - If the variable is not found, the zip file will be stored in the same place as ``SRB2C_LOC``
+    - After the zip file has been created/updated, it will then run the SRB2 executable in ``SRB2C_LOC``, with the ``-file`` parameter to run it
+    - Aditionally, this will print useful information such as runcount and datetime
+    """
+    global runcount
     srb2_loc = get_environment_variable("SRB2C_LOC")
     srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.dirname(srb2_loc)
+    vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
     if srb2_loc:
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") # NOW! *thunder*
+        gonnarun = True
         currentdir = os.path.dirname(__file__)
         basedirname = os.path.basename(currentdir)
         pk3name = "_"+basedirname+".pk3"
         try:
-            with open(".SRB2C_ARGS", "r") as file:
+            with open(os.path.join(currentdir, ".SRB2C_ARGS"), "r") as file:
                 extraargs = file.read().split()
+                if runcount == 0:
+                    BLUE = '\033[36m' if vscode else ''
+                    GREEN = '\033[32m' if vscode else ''
+                    print(f"[{now}] Found {GREEN}.SRB2C_ARGS{BLUE} file")
         except FileNotFoundError:
-            print(".SRB2C_ARGS file not present, using default parameter: -skipintro")
+            if runcount == 0:
+                BLUE = '\033[36m' if vscode else ''
+                GREEN = '\033[32m' if vscode else ''
+                print(f"[{now}] {GREEN}.SRB2C_ARGS{BLUE} file not found, so we will be using the default parameter: {GREEN}-skipintro{BLUE}")
             extraargs = ["-skipintro"]
-
         args = [srb2_loc, "-file", pk3name]
         args.extend(extraargs)
-        #now = datetime.datetime.now()
-        print(f"Zipping '{basedirname}', please wait a moment...")
+        if runcount == 0:
+            print(f"- Zipping '{GREEN}{basedirname}{BLUE}', please wait a moment...")
         create_or_update_zip(currentdir, srb2_dl, pk3name)
         if os.path.exists(os.path.join(srb2_dl, pk3name)):
-            print(pk3name+" (This script's directory) was created/updated in your SRB2 directory!")
-            print("Running SRB2 with that mod. Happy testing!")
+            if runcount == 0:
+                specified = "specified" if get_environment_variable("SRB2C_DL") else "SRB2"
+                print(f"- '{GREEN}"+pk3name+f"{BLUE}' (This script's directory) was created/updated in your {specified} directory")
+                print("- Running SRB2 with that mod. Happy testing!")
+            else:
+                print(f"[{now}] Running test #{runcount+1}...")
         else:
-            print("Hm... I couldn't detect a pk3 file, maybe I don't have file writing permissions?")
-            print("Running SRB2 anyway.")
-        subprocess.Popen(args, cwd=os.path.dirname(srb2_loc))
+            RED = '\033[31m' if vscode else ''
+            BLUE = '\033[36m' if vscode else ''
+            print(f"{RED}ERROR:{BLUE} Pk3 not detected, maybe I don't have file writing permissions?")
+            gonnarun = False
+        if gonnarun:
+            subprocess.run(args, cwd=os.path.dirname(srb2_loc))
+            runcount = runcount + 1
     else:
-        vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
         GREEN = '\033[32m' if vscode else ''
         RESETCOLOR = '\033[0m' if vscode else ''
         print(f"SRB2C_LOC system variable not set. Please run '{GREEN}set{RESETCOLOR}' to set it.")
 
-def get_environment_variable(variable):
+def get_environment_variable(variable: str):
     sysvar = os.getenv(variable)
 
     if platform.system() == "Windows":
@@ -137,7 +167,7 @@ def get_environment_variable(variable):
 
     return sysvar
 
-def set_environment_variable(variable, value):
+def set_environment_variable(variable: str|None, value: str|None):
     if platform.system() == "Windows":
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Environment', 0, winreg.KEY_SET_VALUE)
         winreg.SetValueEx(key, variable, 0, winreg.REG_EXPAND_SZ, value)
@@ -174,7 +204,7 @@ def choose_srb2_downloads():
 
     return srb2_downloads_path
 
-def file_explorer(file_types):
+def file_explorer(file_types: list):
     from tkinter import filedialog, Tk
 
     root = Tk()
@@ -200,7 +230,7 @@ def directory_explorer():
 
     return directory_path
 
-def create_or_update_zip(source_path, destination_path, zip_name):
+def create_or_update_zip(source_path: str, destination_path: str, zip_name: str):
     zip_full_path = os.path.join(destination_path, zip_name)
 
     # Check if the destination zip file already exists
@@ -221,11 +251,21 @@ def create_or_update_zip(source_path, destination_path, zip_name):
 
                     # Exclude this script and git files
                     if not (file.endswith('.py') or file.endswith('.md') or file.endswith('LICENSE') or file.startswith('.') or '.git' in rel_path):
-                        # Compare files and update if needed
-                        if rel_path in existing_zip.namelist() and not filecmp.cmp(source_file_path, existing_zip.extract(rel_path)):
-                            temp_zip.write(source_file_path, rel_path)
-                        elif rel_path not in existing_zip.namelist():
-                            temp_zip.write(source_file_path, rel_path)
+                        if rel_path in existing_zip.namelist():
+                            # Read the existing file from the zip archive
+                            with existing_zip.open(rel_path) as existing_file:
+                                existing_file_data = existing_file.read()
+                            # Read the source file data
+                            with open(source_file_path, 'rb') as source_file:
+                                source_file_data = source_file.read()
+
+                            # Compare files and update if needed
+                            if existing_file_data != source_file_data:
+                                temp_zip.writestr(rel_path, source_file_data)
+                        else:
+                            # If the file is not in the existing zip, add it
+                            with open(source_file_path, 'rb') as source_file:
+                                temp_zip.writestr(rel_path, source_file.read())
 
         # Update the destination zip file with the modified contents
         with open(zip_full_path, 'wb') as updated_zip_file:
@@ -238,7 +278,6 @@ def create_or_update_zip(source_path, destination_path, zip_name):
                 for file in files:
                     source_file_path = os.path.join(root, file)
                     rel_path = os.path.relpath(source_file_path, source_path)
-
                     # Exclude this script and git files
                     if not (file.endswith('.py') or file.endswith('.md') or file.endswith('LICENSE') or file.startswith('.') or '.git' in rel_path):
                         new_zip.write(source_file_path, rel_path)
