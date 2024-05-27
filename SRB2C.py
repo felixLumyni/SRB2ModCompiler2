@@ -64,8 +64,10 @@ def main():
             else:
                 params = []
                 params.extend(command.split())
+                script_dir = os.path.dirname(os.path.abspath(__file__))
                 filename = ".SRB2C_ARGS"
-                with open(filename, "w") as file:
+                filepath = os.path.join(script_dir, filename)
+                with open(filepath, "w") as file:
                     for i, param in enumerate(params):
                         file.write(param)
                         if i != len(params) - 1:
