@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v2.1 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v2.2 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -44,9 +44,31 @@ def main():
             print(f"SRB2C_LOC system variable path: {srb2_loc}")
             print(f"SRB2C_DL system variable path: {srb2_dl}")
         elif command == "set":
-            choose_srb2_executable()
+            print(f"Type {GREEN}E{BLUE} to open the file explorer or paste the path to your SRB2 executable here.")
+            command = input(RESETCOLOR+">> ")
+            print(BLUE, end="")
+            if command.lower() == "e":
+                choose_srb2_executable()
+            else:
+                path = sanitized_exe_filepath(command)
+                if path:
+                    set_environment_variable("SRB2C_LOC", path)
+                    print("SRB2C_LOC system variable updated! Now just press enter to run it.")
+                else:
+                    print("Operation cancelled.")
         elif command == "downloads":
-            choose_srb2_downloads()
+            print(f"Type {GREEN}E{BLUE} to open the file explorer or paste the path of where you want your compiled mods to be saved.")
+            command = input(RESETCOLOR+">> ")
+            print(BLUE, end="")
+            if command.lower() == "e":
+                choose_srb2_downloads()
+            else:
+                path = sanitized_directory_path(command)
+                if path:
+                    set_environment_variable("SRB2C_DL", path)
+                    print("SRB2C_DL system variable updated!")
+                else:
+                    print("Operation cancelled.")
         elif command == "unset":
             set_environment_variable("SRB2C_LOC", None)
             set_environment_variable("SRB2C_DL", None)
@@ -135,7 +157,7 @@ def run():
         if os.path.exists(os.path.join(srb2_dl, pk3name)):
             if runcount == 0:
                 specified = "specified" if get_environment_variable("SRB2C_DL") else "SRB2"
-                print(f"- '{GREEN}"+pk3name+f"{BLUE}' (This script's directory) was created/updated in your {specified} directory")
+                print(f"- '{GREEN}"+pk3name+f"{BLUE}' (The contents of this script's directory) was created/updated in your {specified} directory")
                 print("- Running SRB2 with that mod. Happy testing!")
             else:
                 print(f"[{now}] Running test #{runcount+1}...")
@@ -150,7 +172,7 @@ def run():
     else:
         GREEN = '\033[32m' if vscode else ''
         RESETCOLOR = '\033[0m' if vscode else ''
-        print(f"SRB2C_LOC system variable not set. Please run '{GREEN}set{RESETCOLOR}' to set it.")
+        print(f"SRB2C_LOC system variable not set. Please run '{GREEN}set{BLUE}' to set it.")
 
 def get_environment_variable(variable: str):
     sysvar = os.getenv(variable)
@@ -283,6 +305,58 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
                     # Exclude this script and git files
                     if not (file.endswith('.py') or file.endswith('.md') or file.endswith('LICENSE') or file.startswith('.') or '.git' in rel_path):
                         new_zip.write(source_file_path, rel_path)
+
+def sanitized_exe_filepath(user_input):
+    vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
+    RED = '\033[31m' if vscode else ''
+    BLUE = '\033[36m' if vscode else ''
+
+    path = os.path.normpath(user_input)
+    real_path = os.path.realpath(path)
+    is_executable = False
+
+    if not os.path.exists(real_path):
+        print(f"{RED}ERROR: The path does not exist.{BLUE}")
+        return False
+    else:
+        if os.path.isfile(real_path):
+            print("INFO: The path points to a file.")
+            if os.path.splitext(real_path)[1] == ".exe" or os.access(real_path, os.X_OK):
+                is_executable = True
+        elif os.path.isdir(real_path):
+            print(f"{RED}ERROR: The path points to a directory.{BLUE}")
+            return False
+        else:
+            print(f"{RED}ERROR: The path is not a file or a directory.{BLUE}")
+            return False
+    
+    if not is_executable:
+        print(f"{RED}WARNING!! THE PATH U JUST SET DOES NOT APPEAR TO POINT TO AN EXE FILE, THE PROGRAM MIGHT SHIT ISELF!!{BLUE}")
+
+    return path
+
+def sanitized_directory_path(user_input):
+    vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
+    RED = '\033[31m' if vscode else ''
+    BLUE = '\033[36m' if vscode else ''
+
+    path = os.path.normpath(user_input)
+    real_path = os.path.realpath(path)
+
+    if not os.path.exists(real_path):
+        print(f"{RED}ERROR: The path does not exist.{BLUE}")
+        return False
+    else:
+        if os.path.isfile(real_path):
+            print("ERROR: The path points to a file.")
+            return False
+        elif os.path.isdir(real_path):
+            print(f"INFO: The path points to a directory.")
+        else:
+            print(f"{RED}ERROR: The path is not a file or a directory.{BLUE}")
+            return False
+
+    return path
 
 if __name__ == "__main__":
     main()
