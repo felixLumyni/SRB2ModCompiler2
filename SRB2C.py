@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v2.2 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v2.3 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -256,6 +256,7 @@ def directory_explorer():
 
 def create_or_update_zip(source_path: str, destination_path: str, zip_name: str):
     zip_full_path = os.path.join(destination_path, zip_name)
+    compressionmethod = zipfile.ZIP_DEFLATED
 
     # Check if the destination zip file already exists
     if os.path.exists(zip_full_path):
@@ -267,7 +268,7 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
         temp_zip_data = io.BytesIO()
 
         # Compare source files with existing zip contents
-        with zipfile.ZipFile(existing_zip_data, 'r') as existing_zip, zipfile.ZipFile(temp_zip_data, 'a') as temp_zip:
+        with zipfile.ZipFile(existing_zip_data, 'r') as existing_zip, zipfile.ZipFile(temp_zip_data, 'a', compression=compressionmethod) as temp_zip:
             for root, _, files in os.walk(source_path):
                 for file in files:
                     source_file_path = os.path.join(root, file)
@@ -297,7 +298,7 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
 
     else:
         # If the destination zip file doesn't exist, create a new one
-        with zipfile.ZipFile(zip_full_path, 'w') as new_zip:
+        with zipfile.ZipFile(zip_full_path, 'w', compression=compressionmethod) as new_zip:
             for root, _, files in os.walk(source_path):
                 for file in files:
                     source_file_path = os.path.join(root, file)
@@ -331,7 +332,7 @@ def sanitized_exe_filepath(user_input):
             return False
     
     if not is_executable:
-        print(f"{RED}WARNING!! THE PATH U JUST SET DOES NOT APPEAR TO POINT TO AN EXE FILE, THE PROGRAM MIGHT SHIT ISELF!!{BLUE}")
+        print(f"{RED}WARNING!! THE PATH U JUST SET DOES NOT APPEAR TO POINT TO AN EXE FILE, THE PROGRAM MIGHT SHIT ITSELF!!{BLUE}")
 
     return path
 
