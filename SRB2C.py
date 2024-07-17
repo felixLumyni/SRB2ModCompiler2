@@ -193,7 +193,7 @@ def get_environment_variable(variable: str):
 
     return sysvar
 
-def set_environment_variable(variable: str|None, value: str|None):
+def set_environment_variable(variable, value):
     if platform.system() == "Windows":
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Environment', 0, winreg.KEY_SET_VALUE)
         winreg.SetValueEx(key, variable, 0, winreg.REG_EXPAND_SZ, value)
