@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v2.42 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v2.43 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
