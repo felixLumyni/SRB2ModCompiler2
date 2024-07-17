@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v2.41 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v2.42 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -363,14 +363,11 @@ def sanitized_directory_path(user_input):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some launch parameters.")
-    parser.add_argument('-zip', nargs=2, type=str, help="Skips interface and zips with the given name and export path")
+    parser.add_argument('-zip', nargs=3, type=str, help="Skips interface and zips given path with the given name and export path")
 
     args = parser.parse_args()
 
     if args.zip:
-        currentdir = os.path.dirname(__file__)
-        pk3name = args.zip[0]
-        export_path = args.zip[1]
-        create_or_update_zip(currentdir, export_path, pk3name)
+        create_or_update_zip(args.zip[0], args.zip[1], args.zip[2])
     else:
         main()
