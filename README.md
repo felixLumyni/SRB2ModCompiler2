@@ -12,10 +12,15 @@ View it here in github -> Raw -> Right Click -> Save as file
 ## How to use this to test your mod
 - Drag and drop the .py file inside of the mod files, it should look something like [this](https://github.com/user-attachments/assets/b7f05909-e80d-4d2e-a339-4baa9795f128)
 - Run the .py file with [Python](https://www.python.org/) or [Visual Studio Code](https://code.visualstudio.com/), a terminal should open
-- If you haven't yet, tell it where your SRB2.exe is with the 'set' command
-- Afterwards, everytime you simply press enter on the terminal (without a command), this script will automatically:
-  - Make a pk3 file containing the contents (excluding some files, such as git files and itself) of the directory the script is located at (it will also use that to determine the name of the file). By default, this newly made pk3 will be located in your SRB2 directory, but it can be changed with the command 'downloads'
-  - Open your SRB2
-  - Skip the intro
-  - Load your mod (with custom parameters if you've used the ``args`` command)
-  - And wish you a happy testing session!
+- If you haven't yet, tell it where your SRB2.exe is with the ``set`` command
+- Afterwards, everytime you simply press enter on the terminal (without a command), this script will automatically compile your mod and launch your game with it
+
+<details><summary><b>What do you mean it "compiles" my mod?</b></summary>
+
+- It makes a pk3 file containing the contents (excluding some files, such as git files and itself) of the directory the script is located at (it will also use that to determine the name of the file). By default, this newly made pk3 will be located in your  - SRB2 directory, but it can be changed with the ``downloads`` command
+- Opens your SRB2 executable
+- Skips the intro
+- Loads your mod (with custom parameters if you've used the ``args`` command)
+- And wishes you a happy testing session!
+
+</details>
