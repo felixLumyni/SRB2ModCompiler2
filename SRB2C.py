@@ -12,6 +12,8 @@ import datetime
 #for zipping:
 import io
 import zipfile
+#for unzipping:
+import shutil
 #for sys args:
 import argparse
 
@@ -29,7 +31,7 @@ def main():
     print(f"Type '{GREEN}help{BLUE}' to see available commands.")
     
     while True:
-        command = input(RESETCOLOR+"> ").lower()
+        command = input(RESETCOLOR+"> ").lower().strip()
         print(BLUE, end="")
 
         if command == "help":
@@ -49,7 +51,7 @@ def main():
             print(f"Type {GREEN}E{BLUE} to open the file explorer or paste the path to your SRB2 executable here.")
             command = input(RESETCOLOR+">> ")
             print(BLUE, end="")
-            if command.lower() == "e":
+            if command.lower().strip() == "e":
                 choose_srb2_executable()
             else:
                 path = sanitized_exe_filepath(command)
@@ -62,7 +64,7 @@ def main():
             print(f"Type {GREEN}E{BLUE} to open the file explorer or paste the path of where you want your compiled mods to be saved.")
             command = input(RESETCOLOR+">> ")
             print(BLUE, end="")
-            if command.lower() == "e":
+            if command.lower().strip() == "e":
                 choose_srb2_downloads()
             else:
                 path = sanitized_directory_path(command)
@@ -81,7 +83,7 @@ def main():
             print('- Example: -skipintro -server +skin Tails +color Rosy +wait 1 -warp tutorial +downloading off')
             print("- (If you're still confused, refer to the 'command line parameters' page from the SRB2 Wiki)")
             print("- If you wish to cancel, simply press enter without typing anything")
-            command = input(RESETCOLOR+">> ").lower()
+            command = input(RESETCOLOR+">> ").lower().strip()
             print(BLUE, end="")
             if command == "":
                 print("Operation cancelled by user.")
@@ -114,6 +116,24 @@ def main():
                 os.system('cls')
             else:
                 os.system('clear')
+        elif command == "unzip":
+            print("Enter the name of the .pk3 file to unzip, or 'e' to use file explorer:")
+            command = input(RESETCOLOR+">> ").lower().strip()
+            if command == 'e':
+                print("Select a .pk3 file to unzip:")
+                file_path = file_explorer([("PK3 files", "*.pk3")])
+            else:
+                file_path = os.path.join(os.getcwd(), command)
+            
+            if file_path and os.path.exists(file_path):
+                output_dir = os.path.join(os.path.dirname(file_path), os.path.splitext(os.path.basename(file_path))[0])
+                try:
+                    unzip_pk3(file_path, output_dir)
+                    print(f"Successfully unzipped {os.path.basename(file_path)} to {output_dir}")
+                except Exception as e:
+                    print(f"Error unzipping file: {str(e)}")
+            else:
+                print("Operation cancelled. No valid file selected or found.")
         else:
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
 
@@ -360,6 +380,37 @@ def sanitized_directory_path(user_input):
             return False
 
     return path
+
+def unzip_pk3(zip_path, extract_to):
+    if not os.path.exists(extract_to):
+        os.makedirs(extract_to)
+        
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        for file_info in zip_ref.infolist():
+            organize_and_extract(file_info, zip_ref, extract_to)
+
+def organize_and_extract(file_info, zip_ref, base_folder):
+    file_name = file_info.filename
+
+    if 'S_SKIN' in file_name:
+        destination_dir = os.path.join(base_folder, '1-S_SKIN')
+    elif 'S_SUPER' in file_name:
+        destination_dir = os.path.join(base_folder, '3-Super', '1-S_SUPER')
+    elif 'S_END' in file_name:
+        destination_dir = os.path.join(base_folder, '3-Super', '3-S_END')
+    else:
+        # Regular sprite or other files
+        if 'S_SUPER' in file_name:  # Files that appear after S_SUPER
+            destination_dir = os.path.join(base_folder, '3-Super', '2-SuperSprites')
+        else:
+            destination_dir = os.path.join(base_folder, '2-Sprites')
+
+    os.makedirs(destination_dir, exist_ok=True)
+
+    # Extract the file into the correct directory
+    extracted_file_path = os.path.join(destination_dir, os.path.basename(file_name))
+    with zip_ref.open(file_info) as source, open(extracted_file_path, 'wb') as target:
+        shutil.copyfileobj(source, target)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some launch parameters.")
