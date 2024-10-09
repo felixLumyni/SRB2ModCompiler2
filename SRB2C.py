@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v2.43 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v2.5 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -119,6 +119,8 @@ def main():
         elif command == "unzip":
             print("Enter the name of the .pk3 file to unzip, or 'e' to use file explorer:")
             command = input(RESETCOLOR+">> ").lower().strip()
+            print(BLUE, end="")
+            
             if command == 'e':
                 print("Select a .pk3 file to unzip:")
                 file_path = file_explorer([("PK3 files", "*.pk3")])
@@ -127,11 +129,11 @@ def main():
             
             if file_path and os.path.exists(file_path):
                 output_dir = os.path.join(os.path.dirname(file_path), os.path.splitext(os.path.basename(file_path))[0])
-                try:
-                    unzip_pk3(file_path, output_dir)
-                    print(f"Successfully unzipped {os.path.basename(file_path)} to {output_dir}")
-                except Exception as e:
-                    print(f"Error unzipping file: {str(e)}")
+                output = unzip_pk3(file_path, output_dir)
+                if output == True:
+                    print(f"{GREEN}Successfully unzipped {os.path.basename(file_path)} to {output_dir}{BLUE}")
+                else:
+                    print(f"{RED}Error: {output}{BLUE}")
             else:
                 print("Operation cancelled. No valid file selected or found.")
         else:
@@ -384,33 +386,62 @@ def sanitized_directory_path(user_input):
 def unzip_pk3(zip_path, extract_to):
     if not os.path.exists(extract_to):
         os.makedirs(extract_to)
-        
+    
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        current_skin = None
+        current_super = False
+        
         for file_info in zip_ref.infolist():
-            organize_and_extract(file_info, zip_ref, extract_to)
+            try:
+                current_skin, current_super = organize_and_extract(file_info, zip_ref, extract_to, current_skin, current_super)
+            except Exception as e:
+                return f"Error extracting {file_info.filename}: {str(e)}"
+    return True
 
-def organize_and_extract(file_info, zip_ref, base_folder):
+def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_super):
     file_name = file_info.filename
+    path_parts = file_name.split('/')
 
-    if 'S_SKIN' in file_name:
-        destination_dir = os.path.join(base_folder, '1-S_SKIN')
-    elif 'S_SUPER' in file_name:
-        destination_dir = os.path.join(base_folder, '3-Super', '1-S_SUPER')
-    elif 'S_END' in file_name:
-        destination_dir = os.path.join(base_folder, '3-Super', '3-S_END')
-    else:
-        # Regular sprite or other files
-        if 'S_SUPER' in file_name:  # Files that appear after S_SUPER
-            destination_dir = os.path.join(base_folder, '3-Super', '2-SuperSprites')
+    if file_name.endswith('/'):
+        # Create the directory without trying to extract it
+        os.makedirs(os.path.join(base_folder, file_name), exist_ok=True)
+        print(f"Created directory: {file_name}")
+        return current_skin, current_super
+    
+    if len(path_parts) > 1 and 'S_SKIN' in path_parts[-1]:
+        current_skin = path_parts[-2]
+        category = os.path.join(current_skin, '1-S_SKIN')
+    elif current_skin:
+        if 'S_SUPER' in path_parts[-1]:
+            current_super = True
+            category = os.path.join(current_skin, '3-SuperSkin', '1-S_SUPER')
+        elif 'S_END' in path_parts[-1]:
+            category = os.path.join(current_skin, '3-SuperSkin', '3-S_END')
+            current_super = False
+        elif current_super:
+            category = os.path.join(current_skin, '3-SuperSkin', '2-SuperSprites')
         else:
-            destination_dir = os.path.join(base_folder, '2-Sprites')
-
+            category = os.path.join(current_skin, '2-Sprites')
+        
+        if not file_name.startswith(current_skin):
+            current_skin = None
+            current_super = False
+            category = os.path.dirname(file_name)
+    else:
+        category = os.path.dirname(file_name)
+    
+    destination_dir = os.path.join(base_folder, category)
     os.makedirs(destination_dir, exist_ok=True)
-
-    # Extract the file into the correct directory
-    extracted_file_path = os.path.join(destination_dir, os.path.basename(file_name))
+    
+    extracted_file_path = os.path.join(base_folder, file_name)
+    os.makedirs(os.path.dirname(extracted_file_path), exist_ok=True)
+    
     with zip_ref.open(file_info) as source, open(extracted_file_path, 'wb') as target:
         shutil.copyfileobj(source, target)
+    
+    print(f"Extracted: {file_name}")
+    return current_skin, current_super
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some launch parameters.")
