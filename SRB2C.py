@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v2.6 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v3 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -18,6 +18,11 @@ import shutil
 import argparse
 
 runcount = 0
+isVerbose = False
+
+def verbose(*args, **kwargs):
+    if isVerbose:
+        print(*args, **kwargs)
 
 def main():
     vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
@@ -131,7 +136,7 @@ def main():
                 output_dir = os.path.join(os.path.dirname(file_path), os.path.splitext(os.path.basename(file_path))[0])
                 output = unzip_pk3(file_path, output_dir)
                 if output == True:
-                    print(f"{GREEN}Successfully unzipped {os.path.basename(file_path)} to {output_dir}{BLUE}")
+                    print(f"{GREEN}Successfully unzipped {os.path.basename(file_path)} to {os.path.basename(output_dir)}{BLUE}")
                 else:
                     print(f"{RED}Error: {output}{BLUE}")
             else:
@@ -386,7 +391,28 @@ def sanitized_directory_path(user_input):
 
     return path
 
+def remove_empty_folders(path):
+    for root, dirs, files in os.walk(path, topdown=False):
+        for dir in dirs:
+            dir_path = os.path.join(root, dir)
+            if not os.listdir(dir_path):
+                os.rmdir(dir_path)
+                verbose(f"Removed empty folder: {dir_path}")
+
 def unzip_pk3(zip_path, extract_to):
+    output_dir = os.path.join(os.path.dirname(zip_path), os.path.splitext(os.path.basename(zip_path))[0])
+    
+    if os.path.exists(output_dir):
+        response = input(f"{os.path.basename(output_dir)} already exists. Would you like to delete it? (Y/N): ").strip().lower()
+        if response == 'y':
+            shutil.rmtree(output_dir)
+            print(f"Deleted existing directory: {output_dir}")
+        else:
+            print("Operation cancelled.")
+            return False
+
+    print("Unzipping... (might take a bit if your mod is large!)")
+
     if not os.path.exists(extract_to):
         os.makedirs(extract_to)
     
@@ -407,10 +433,12 @@ def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_
     
     if file_name.endswith('/'):
         os.makedirs(os.path.join(base_folder, file_name), exist_ok=True)
-        print(f"Created directory: {file_name}")
+        verbose(f"Created directory: {file_name}")
         return current_skin, current_super
 
     if current_skin and not file_name.startswith(current_skin + '/'):
+        skin_path = os.path.join(base_folder, current_skin)
+        remove_empty_folders(skin_path)
         current_skin = None
         current_super = False
 
@@ -448,7 +476,7 @@ def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_
     with zip_ref.open(file_info) as source, open(extracted_file_path, 'wb') as target:
         shutil.copyfileobj(source, target)
     
-    # print(f"Extracted: {file_name} to {category}")
+    verbose(f"Extracted: {file_name} to {category}")
     return current_skin, current_super
 
 
