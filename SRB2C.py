@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v2.5 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v2.6 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -138,6 +138,9 @@ def main():
                 print("Operation cancelled. No valid file selected or found.")
         else:
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
+
+COMMON_SRB2_PARTS = ['Lua', 'Sprites', 'Textures', 'Sounds', 'Graphics', 'SOC']
+# TODO: Warn/ask user if they really want to run this script if none of the above are found
 
 def run():
     """
@@ -401,21 +404,27 @@ def unzip_pk3(zip_path, extract_to):
 def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_super):
     file_name = file_info.filename
     path_parts = file_name.split('/')
-
+    
     if file_name.endswith('/'):
-        # Create the directory without trying to extract it
         os.makedirs(os.path.join(base_folder, file_name), exist_ok=True)
         print(f"Created directory: {file_name}")
         return current_skin, current_super
+
+    if current_skin and not file_name.startswith(current_skin + '/'):
+        current_skin = None
+        current_super = False
+
+    if 'S_SKIN' in file_name:
+        current_skin = path_parts[0]
+        current_super = False
     
-    if len(path_parts) > 1 and 'S_SKIN' in path_parts[-1]:
-        current_skin = path_parts[-2]
-        category = os.path.join(current_skin, '1-S_SKIN')
-    elif current_skin:
-        if 'S_SUPER' in path_parts[-1]:
+    if current_skin and file_name.startswith(current_skin):
+        if 'S_SKIN' in file_name:
+            category = os.path.join(current_skin, '1-S_SKIN')
+        elif 'S_SUPER' in file_name:
             current_super = True
             category = os.path.join(current_skin, '3-SuperSkin', '1-S_SUPER')
-        elif 'S_END' in path_parts[-1]:
+        elif 'S_END' in file_name:
             category = os.path.join(current_skin, '3-SuperSkin', '3-S_END')
             current_super = False
         elif current_super:
@@ -423,23 +432,23 @@ def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_
         else:
             category = os.path.join(current_skin, '2-Sprites')
         
-        if not file_name.startswith(current_skin):
-            current_skin = None
-            current_super = False
-            category = os.path.dirname(file_name)
+        # Preserve subfolder structure
+        subfolder_path = os.path.dirname(file_name[len(current_skin)+1:])
+        category = os.path.join(category, subfolder_path)
     else:
+        current_skin = None
+        current_super = False
         category = os.path.dirname(file_name)
     
     destination_dir = os.path.join(base_folder, category)
     os.makedirs(destination_dir, exist_ok=True)
     
-    extracted_file_path = os.path.join(base_folder, file_name)
-    os.makedirs(os.path.dirname(extracted_file_path), exist_ok=True)
+    extracted_file_path = os.path.join(destination_dir, os.path.basename(file_name))
     
     with zip_ref.open(file_info) as source, open(extracted_file_path, 'wb') as target:
         shutil.copyfileobj(source, target)
     
-    print(f"Extracted: {file_name}")
+    # print(f"Extracted: {file_name} to {category}")
     return current_skin, current_super
 
 
