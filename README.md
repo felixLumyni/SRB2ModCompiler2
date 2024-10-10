@@ -10,6 +10,7 @@ View it here in github -> Raw -> Right Click -> Save as file
 - Having your mod outside of a compressed file also allows mods to be edited more comfortably with apps other than [SLADE](https://github.com/sirjuddington/SLADE), I personally recommend [VS Code](https://code.visualstudio.com/), since it can run this script AND edit your mods like SLADE.
 
 ## How to use this to test your mod
+- If your mod is in a compressed file, extract it to a folder with the ``unzip`` command
 - Drag and drop the .py file inside of the mod files, it should look something like [this](https://github.com/user-attachments/assets/b7f05909-e80d-4d2e-a339-4baa9795f128)
 - Run the .py file with [Python](https://www.python.org/) or [Visual Studio Code](https://code.visualstudio.com/), a terminal should open
 - If you haven't yet, tell it where your SRB2.exe is with the ``set`` command

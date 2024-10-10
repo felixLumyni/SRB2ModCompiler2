@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v3 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v3.1 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -30,6 +30,9 @@ def main():
     GREEN = '\033[32m' if vscode else ''
     BLUE = '\033[36m' if vscode else ''
     RESETCOLOR = '\033[0m' if vscode else ''
+    BLACK = '\033[30m' if vscode else ''
+    UNDERLINE = '\033[4m' if vscode else ''
+    NOUNDERLINE = '\033[24m' if vscode else ''
     set = GREEN+"set" if get_environment_variable("SRB2C_LOC") else RED+"unset"
     print(BLUE, end="")
     print(f"Welcome to SRB2ModCompiler v2! Your system variable is {set}{BLUE}.")
@@ -40,12 +43,15 @@ def main():
         print(BLUE, end="")
 
         if command == "help":
-            print("Available commands:")
-            print(f"  {GREEN}<literally nothing>{BLUE} - Compile this script's directory into a mod and run it in your exe from the system variable!")
-            print(f"  {GREEN}set{BLUE} - Update the system variable that (necessary so this script knows where your SRB2 is)")
-            print(f"  {GREEN}path{BLUE} - Show the paths for both system variables")
-            print(f"  {GREEN}downloads{BLUE} - Update the secondary and optional system variable that determines where your files will be saved")
-            print(f"  {GREEN}args{BLUE} - Update your launch parameters as a file! (also optional)")
+            print(f"{UNDERLINE}Essential commands:{NOUNDERLINE}")
+            print(f"  {GREEN}<literally nothing>{BLUE} - Compile this script's directory into a mod and launch it in SRB2! {BLACK}(Requires system variable below)")
+            print(f"  {GREEN}set{BLUE} - Update the system variable that points to your SRB2 executable")
+            print(f"{UNDERLINE}Extra commands:{NOUNDERLINE}")
+            print(f"  {GREEN}downloads{BLUE} - Update the secondary system variable that determines where your pk3 files will be saved")
+            print(f"  {GREEN}unset{BLUE} - Clear all system variables")
+            print(f"  {GREEN}path{BLUE} - Show where all system variables point to")
+            print(f"  {GREEN}args{BLUE} - Update your launch parameters as a file")
+            print(f"  {GREEN}unzip{BLUE} - Decompile a pk3 back into a compile-able folder")
             print(f"  {GREEN}quit{BLUE} - Exit the program")
         elif command == "path":
             srb2_loc = get_environment_variable("SRB2C_LOC")
@@ -53,7 +59,7 @@ def main():
             print(f"SRB2C_LOC system variable path: {srb2_loc}")
             print(f"SRB2C_DL system variable path: {srb2_dl}")
         elif command == "set":
-            print(f"Type {GREEN}E{BLUE} to open the file explorer or paste the path to your SRB2 executable here.")
+            print(f"Enter {GREEN}E{BLUE} to open the file explorer or paste the path to your SRB2 executable here.")
             command = input(RESETCOLOR+">> ")
             print(BLUE, end="")
             if command.lower().strip() == "e":
@@ -66,7 +72,7 @@ def main():
                 else:
                     print("Operation cancelled.")
         elif command == "downloads":
-            print(f"Type {GREEN}E{BLUE} to open the file explorer or paste the path of where you want your compiled mods to be saved.")
+            print(f"Enter {GREEN}E{BLUE} to open the file explorer or paste the path of where you want your compiled mods to be saved.")
             command = input(RESETCOLOR+">> ")
             print(BLUE, end="")
             if command.lower().strip() == "e":
@@ -114,7 +120,6 @@ def main():
             print("BRUH LOL")
             print("You know what I meant.")
         elif command == "run":
-            BLACK = '\033[30m' if vscode else ''
             print(BLACK+"Who are you running from?"+BLUE)
         elif command == "cls":
             if platform.system() == 'Windows':
