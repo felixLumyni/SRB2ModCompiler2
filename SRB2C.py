@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v3.3 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v3.5 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -151,7 +151,7 @@ def main():
         elif command == "verbose":
             global isVerbose
             isVerbose = not isVerbose
-            print(f"Verbose mode is now {GREEN if isVerbose else RED}{"enabled" if isVerbose else "disabled"}{BLUE}.")
+            print(f"Verbose mode is now {GREEN if isVerbose else RED}{('enabled' if isVerbose else 'disabled')}{BLUE}.")
         else:
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
 
@@ -194,8 +194,20 @@ def run():
                 GREEN = '\033[32m' if vscode else ''
                 print(f"[{now}] {GREEN}.SRB2C_ARGS{BLUE} file not found, so we will be using the default parameter: {GREEN}-skipintro{BLUE}")
             extraargs = ["-skipintro"]
-        args = [srb2_loc, "-file", pk3name]
+
+        if "-prefile" in extraargs:
+            prefile_index = extraargs.index("-prefile")
+            if prefile_index + 1 < len(extraargs):
+                prefile = extraargs[prefile_index + 1]
+                extraargs = extraargs[:prefile_index] + extraargs[prefile_index + 2:]
+                args = [srb2_loc, "-file", prefile, pk3name]
+            else:
+                print("Warning: -prefile parameter is present but no file specified. Ignoring -prefile.")
+                args = [srb2_loc, "-file", pk3name]
+        else:
+            args = [srb2_loc, "-file", pk3name]
         args.extend(extraargs)
+
         if runcount == 0:
             print(f"- Zipping '{GREEN}{basedirname}{BLUE}', please wait a moment...")
         create_or_update_zip(currentdir, srb2_dl, pk3name)
