@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v3.21 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v3.3 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -111,6 +111,7 @@ def main():
                             file.write(" ")
                 print(filename,"file was created/updated (in the same directory as this script)!")
         elif command == "quit":
+            print(RESETCOLOR, end="")
             break
         elif command == "":
             run()
@@ -463,8 +464,15 @@ def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_
         current_super = False
 
     if 'S_SKIN' in file_name:
-        current_skin = path_parts[0]
-        current_super = False
+        skin_dir = os.path.dirname(file_name)
+        has_valid_file = any(f.lower().endswith(('.lmp', '.png')) for f in zip_ref.namelist() if os.path.dirname(f) == skin_dir)
+        if has_valid_file:
+            current_skin = path_parts[0]
+            current_super = False
+            print(f"Organizing skin folder: {skin_dir}")
+        else:
+            print(f"Did organize skin folder {skin_dir}: Might already be organized.")
+
     
     if current_skin and file_name.startswith(current_skin):
         if 'S_SKIN' in file_name:
