@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v3.2 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v3.21 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -148,8 +148,9 @@ def main():
             else:
                 print("Operation cancelled. No valid file selected or found.")
         elif command == "verbose":
+            global isVerbose
             isVerbose = not isVerbose
-            print(f"Verbose mode is now {GREEN if isVerbose else RED}enabled{BLUE}.")
+            print(f"Verbose mode is now {GREEN if isVerbose else RED}{"enabled" if isVerbose else "disabled"}{BLUE}.")
         else:
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
 
