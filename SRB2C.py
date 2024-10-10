@@ -1,21 +1,21 @@
 '''
-# SRB2ModCompiler v3.1 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v3.2 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
 
 import os
-import platform
-import subprocess
-if platform.system() == "Windows": import winreg
-import datetime
-#for zipping:
-import io
-import zipfile
-#for unzipping:
-import shutil
-#for sys args:
-import argparse
+
+'''
+LAZY IMPORTS: 
+- argparse: Only when running the script
+- subprocess and datetime: Only in the run() function
+- winreg: Only in the set_environment_variable() and get_environment_variable() functions
+- platform: Same as above, but also in the 'cls' command
+- tkinter: Only in the file_explorer() and directory_explorer() functions
+- zipfile: Only in the unzip_pk3() and create_or_update_zip() functions
+- shutil: Only in the unzip_pk3() function
+'''
 
 runcount = 0
 isVerbose = False
@@ -122,6 +122,7 @@ def main():
         elif command == "run":
             print(BLACK+"Who are you running from?"+BLUE)
         elif command == "cls":
+            import platform
             if platform.system() == 'Windows':
                 os.system('cls')
             else:
@@ -146,6 +147,9 @@ def main():
                     print(f"{RED}Error: {output}{BLUE}")
             else:
                 print("Operation cancelled. No valid file selected or found.")
+        elif command == "verbose":
+            isVerbose = not isVerbose
+            print(f"Verbose mode is now {GREEN if isVerbose else RED}enabled{BLUE}.")
         else:
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
 
@@ -163,6 +167,8 @@ def run():
     - After the zip file has been created/updated, it will then run the SRB2 executable in ``SRB2C_LOC``, with the ``-file`` parameter to run it
     - Aditionally, this will print useful information such as runcount and datetime
     """
+    import subprocess
+    import datetime
     global runcount
     srb2_loc = get_environment_variable("SRB2C_LOC")
     srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.dirname(srb2_loc)
@@ -212,9 +218,11 @@ def run():
         print(f"SRB2C_LOC system variable not set. Please run '{GREEN}set{BLUE}' to set it.")
 
 def get_environment_variable(variable: str):
+    import platform
     sysvar = os.getenv(variable)
 
     if platform.system() == "Windows":
+        import winreg
         # On Windows, manually refresh os.environ after modifying the registry
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Environment', 0, winreg.KEY_READ)
         try:
@@ -229,7 +237,9 @@ def get_environment_variable(variable: str):
     return sysvar
 
 def set_environment_variable(variable, value):
+    import platform
     if platform.system() == "Windows":
+        import winreg
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Environment', 0, winreg.KEY_SET_VALUE)
         winreg.SetValueEx(key, variable, 0, winreg.REG_EXPAND_SZ, value)
         winreg.CloseKey(key)
@@ -292,6 +302,8 @@ def directory_explorer():
     return directory_path
 
 def create_or_update_zip(source_path: str, destination_path: str, zip_name: str):
+    import io
+    import zipfile
     zip_full_path = os.path.join(destination_path, zip_name)
     compressionmethod = zipfile.ZIP_DEFLATED
 
@@ -405,6 +417,8 @@ def remove_empty_folders(path):
                 verbose(f"Removed empty folder: {dir_path}")
 
 def unzip_pk3(zip_path, extract_to):
+    import zipfile
+    import shutil
     output_dir = os.path.join(os.path.dirname(zip_path), os.path.splitext(os.path.basename(zip_path))[0])
     
     if os.path.exists(output_dir):
@@ -427,12 +441,12 @@ def unzip_pk3(zip_path, extract_to):
         
         for file_info in zip_ref.infolist():
             try:
-                current_skin, current_super = organize_and_extract(file_info, zip_ref, extract_to, current_skin, current_super)
+                current_skin, current_super = organize_and_extract(file_info, zip_ref, extract_to, current_skin, current_super, shutil)
             except Exception as e:
                 return f"Error extracting {file_info.filename}: {str(e)}"
     return True
 
-def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_super):
+def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_super, shutil):
     file_name = file_info.filename
     path_parts = file_name.split('/')
     
@@ -486,6 +500,7 @@ def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_
 
 
 if __name__ == "__main__":
+    import argparse
     parser = argparse.ArgumentParser(description="Process some launch parameters.")
     parser.add_argument('-zip', nargs=3, type=str, help="Skips interface and zips given path with the given name and export path")
 
