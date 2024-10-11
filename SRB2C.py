@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v4.2 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v4.3 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -614,16 +614,14 @@ def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_
 
 def create_versioninfo(datetime, subprocess):
     import re
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     mod_dir = find_mod_directory()
     input_file = os.path.join(mod_dir, ".SRB2C_VERSIONINFO")
 
-    parent_dir = None
-
     if not os.path.exists(input_file):
-        parent_dir = os.path.dirname(mod_dir)
-        input_file = os.path.join(parent_dir, ".SRB2C_VERSIONINFO")
+        input_file = os.path.join(script_dir, ".SRB2C_VERSIONINFO")
         if not os.path.exists(input_file):
-            verbose("No .SRB2C_VERSIONINFO file found in current or parent directory. Skipping version info generation.")
+            verbose("No .SRB2C_VERSIONINFO file found in the mod or default directory. Skipping version info generation.")
             return
 
     with open(input_file, 'r') as file:
@@ -640,8 +638,8 @@ def create_versioninfo(datetime, subprocess):
 
     output_file = os.path.join(mod_dir, relative_path)
 
-    if not os.path.commonpath([mod_dir, output_file]).startswith(mod_dir):
-        raise ValueError("Invalid version info file path! The resulting path must be within the script's directory.")
+    if not os.path.commonpath([script_dir, output_file]).startswith(script_dir):
+        raise ValueError("Invalid version info file path! The output path must be within the script's directory.")
 
     content = ''.join(lines[1:])
 
@@ -653,18 +651,26 @@ def create_versioninfo(datetime, subprocess):
     fetch_pattern = r'\$FETCH:([^:]+):([^:\n]+)'
     matches = re.findall(fetch_pattern, content)
     for file_name, variable in matches:
-        file_path = os.path.join(parent_dir or mod_dir, file_name)
-        if os.path.exists(file_path):
-            with open(file_path, 'r') as fetch_file:
-                file_content = fetch_file.read()
-                value = re.search(f'{variable}(.+)', file_content)
-                if value:
-                    content = content.replace(f'$FETCH:{file_name}:{variable}', value.group(1))
-                else:
-                    content = content.replace(f'$FETCH:{file_name}:{variable}', '"value_not_found"')
-        else:
+        file_paths = [
+            os.path.join(script_dir, file_name),
+            os.path.join(mod_dir, file_name),
+            os.path.join(os.path.dirname(mod_dir), file_name)
+        ]
+        file_found = False
+        for file_path in file_paths:
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as fetch_file:
+                    file_content = fetch_file.read()
+                    value = re.search(f'{variable}(.+)', file_content)
+                    if value:
+                        content = content.replace(f'$FETCH:{file_name}:{variable}', value.group(1))
+                    else:
+                        content = content.replace(f'$FETCH:{file_name}:{variable}', '"value_not_found"')
+                file_found = True
+                break
+        if not file_found:
             content = content.replace(f'$FETCH:{file_name}:{variable}', '"file_not_found"')
-            verbose(f"$FETCH: File {file_name} not found")
+            verbose(f"$FETCH: File {file_name} not found in script_dir, mod_dir, or mod_dir parent directory")
 
     try:
         branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
