@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v4.5 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v4.9 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -244,7 +244,7 @@ def find_mod_directory():
     
     return mod_dir
 
-def run():
+def run(isGUI=None):
     """
     I'm adding this comment because this function does a lot of things:
     - Requires the enviroment variable ``SRB2C_LOC``, which points to the user's SRB2 executable (if not provided, will return a warning)
@@ -257,7 +257,6 @@ def run():
     - After the zip file has been created/updated, it will then run the SRB2 executable in ``SRB2C_LOC``, with the ``-file`` parameter to run it
     - Aditionally, this will print useful information such as runcount and datetime
     """
-      
     import subprocess
     import datetime
     import shlex
@@ -275,16 +274,29 @@ def run():
         verbose(current_dir_contents)
 
         if len(found_parts) < 3:
-            vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
-            YELLOW = '\033[93m' if vscode else ''
-            BLUE = '\033[94m' if vscode else ''
-            RESETCOLOR = '\033[0m' if vscode else ''
-            print(f"{YELLOW}Warning: The directory you're trying to compile probably isn't the mod's files! Less than 3 common SRB2 parts (Lua, Sprites, SOC...) were found in the current directory ({basedirname}).{BLUE}")
-            verbose(f"Found parts: {', '.join(found_parts) if found_parts else 'None.'}")
-            proceed = input(f"{YELLOW}Are you sure you want to proceed here? (y/n): {RESETCOLOR}").lower().strip()
-            if proceed != 'y':
-                print(f"{BLUE}Operation cancelled.")
+            if isGUI:
+                from tkinter import messagebox
+                proceed = messagebox.askyesno(
+                    title=f"Warning in directory: {basedirname}",
+                    message=(f"The directory you're trying to compile probably isn't the mod's files! "
+                             f"Less than 3 common SRB2 parts (Lua, Sprites, SOC...) were found in the current directory. "
+                             f"Do you want to proceed?"),
+                    icon='warning'
+                    )
+            if not proceed:
+                print("Operation cancelled.")
                 return
+            else:
+                vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
+                YELLOW = '\033[93m' if vscode else ''
+                BLUE = '\033[94m' if vscode else ''
+                RESETCOLOR = '\033[0m' if vscode else ''
+                print(f"{YELLOW}Warning: The directory you're trying to compile probably isn't the mod's files! Less than 3 common SRB2 parts (Lua, Sprites, SOC...) were found in the current directory ({basedirname}).{BLUE}")
+                verbose(f"Found parts: {', '.join(found_parts) if found_parts else 'None.'}")
+                proceed = input(f"{YELLOW}Are you sure you want to proceed here? (y/n): {RESETCOLOR}").lower().strip()
+                if proceed != 'y':
+                    print(f"{BLUE}Operation cancelled.")
+                    return
     
     srb2_loc = get_environment_variable("SRB2C_LOC")
     srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.dirname(srb2_loc)
@@ -293,7 +305,10 @@ def run():
         try:
             create_versioninfo(datetime, subprocess)
         except Exception as e:
-            print(f"Error creating .SRB2C_VERSIONINFO file: {e}")
+            if isGUI:
+                raise e
+            else:
+                print(f"Error creating .SRB2C_VERSIONINFO file: {e}")
 
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") # NOW! *thunder*
         gonnarun = True
@@ -509,7 +524,7 @@ def sanitized_exe_filepath(user_input):
         return False
     else:
         if os.path.isfile(real_path):
-            print("INFO: The path points to a file.")
+            verbose("INFO: The path points to a file.")
             if os.path.splitext(real_path)[1] == ".exe" or os.access(real_path, os.X_OK):
                 is_executable = True
         elif os.path.isdir(real_path):
