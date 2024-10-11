@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v3.5 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v3.6 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -47,6 +47,7 @@ def main():
             print(f"  {GREEN}<literally nothing>{BLUE} - Compile this script's directory into a mod and launch it in SRB2! {BLACK}(Requires system variable below)")
             print(f"  {GREEN}set{BLUE} - Update the system variable that points to your SRB2 executable")
             print(f"{UNDERLINE}Extra commands:{NOUNDERLINE}")
+            print(f"  {GREEN}verbose{BLUE} - Toggle detailed output")
             print(f"  {GREEN}downloads{BLUE} - Update the secondary system variable that determines where your pk3 files will be saved")
             print(f"  {GREEN}unset{BLUE} - Clear all system variables")
             print(f"  {GREEN}path{BLUE} - Show where all system variables point to")
@@ -162,6 +163,8 @@ def run():
     """
     I'm adding this comment because this function does a lot of things:
     - Requires the enviroment variable ``SRB2C_LOC``, which points to the user's SRB2 executable (if not provided, will return a warning)
+    - Tries to read the ``.SRB2C_VERSIONINFO`` file (in the same directory as this script) and generate a file based on it.
+        - If the file is not found, this step will be skipped
     - Tries to read the ``.SRB2C_ARGS`` file (in the same directory as this script) and store its contents as launch parameters.
         - If the file is not found, it will default to ``-skipintro``
     - It will zip the current directory in the ``SRB2C_DL`` enviroment variable
@@ -176,6 +179,11 @@ def run():
     srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.dirname(srb2_loc)
     vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
     if srb2_loc:
+        try:
+            create_versioninfo(datetime, subprocess)
+        except Exception as e:
+            print(f"Error creating .SRB2C_VERSIONINFO file: {e}")
+
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") # NOW! *thunder*
         gonnarun = True
         currentdir = os.path.dirname(__file__)
@@ -187,12 +195,12 @@ def run():
                 if runcount == 0:
                     BLUE = '\033[36m' if vscode else ''
                     GREEN = '\033[32m' if vscode else ''
-                    print(f"[{now}] Found {GREEN}.SRB2C_ARGS{BLUE} file")
+                    verbose(f"[{now}] Found {GREEN}.SRB2C_ARGS{BLUE} file")
         except FileNotFoundError:
             if runcount == 0:
                 BLUE = '\033[36m' if vscode else ''
                 GREEN = '\033[32m' if vscode else ''
-                print(f"[{now}] {GREEN}.SRB2C_ARGS{BLUE} file not found, so we will be using the default parameter: {GREEN}-skipintro{BLUE}")
+                verbose(f"[{now}] {GREEN}.SRB2C_ARGS{BLUE} file not found, so we will be using the default parameter: {GREEN}-skipintro{BLUE}")
             extraargs = ["-skipintro"]
 
         if "-prefile" in extraargs:
@@ -518,6 +526,57 @@ def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_
     
     verbose(f"Extracted: {file_name} to {category}")
     return current_skin, current_super
+
+
+def create_versioninfo(datetime, subprocess):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(script_dir, ".SRB2C_VERSIONINFO")
+    
+    if not os.path.exists(input_file):
+        verbose("No .SRB2C_VERSIONINFO file found. Skipping version info generation.")
+        return
+
+    with open(input_file, 'r') as file:
+        lines = file.readlines()
+    
+    if not lines:
+        verbose(".SRB2C_VERSIONINFO file is empty. Skipping version info generation.")
+        return
+
+    relative_path = lines[0].strip()
+
+    if not relative_path or relative_path.startswith('/') or '..' in relative_path or ':' in relative_path:
+        raise ValueError("Invalid version info file path! The first line of .SRB2C_VERSIONINFO should be a simple filepath like 'Lua/VersionInfo.lua'")
+
+    output_file = os.path.join(script_dir, relative_path)
+
+    if not os.path.commonpath([script_dir, output_file]).startswith(script_dir):
+        raise ValueError("Invalid version info file path! The resulting path must be within the script's directory.")
+
+    content = ''.join(lines[1:])
+
+    # Replace special strings
+    now = datetime.datetime.now()
+    content = content.replace("$DATE", now.strftime("%Y-%m-%d"))
+    content = content.replace("$TIME", now.strftime("%H:%M:%S"))
+
+    try:
+        branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
+        content = content.replace("$BRANCH", branch)
+    except:
+        content = content.replace("$BRANCH", "unknown")
+
+    try:
+        commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
+        content = content.replace("$COMMIT", commit)
+    except:
+        content = content.replace("$COMMIT", "unknown")
+
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, 'w') as file:
+        file.write(content)
+
+    verbose(f"Version info file created at: {output_file}")
 
 
 if __name__ == "__main__":

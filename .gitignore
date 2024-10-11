@@ -1,4 +1,3 @@
 */
 *.pk3
-
-.SRB2C_ARGS
+.SRB2C_*
