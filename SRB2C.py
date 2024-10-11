@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v4.31 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v4.4 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -9,7 +9,7 @@ import os
 '''
 LAZY IMPORTS: 
 - argparse: Only when running the script
-- subprocess and datetime: Only in the run() function
+- subprocess, datetime and shlex: Only in the run() function
 - winreg: Only in the set_environment_variable() and get_environment_variable() functions
 - platform: Same as above, but also in the 'cls' command
 - tkinter: Only in the file_explorer() and directory_explorer() functions
@@ -92,27 +92,49 @@ def main():
             set_environment_variable("SRB2C_DL", None)
             print("Unset SRB2C_LOC and SRB2C_DL variables.")
         elif command == "args":
-            print("- Used to launch the game with special settings. DEFAULT: -skipintro")
-            print("- NOTE: Regardless of what parameters you type in here, the script will always use the -file <MOD> parameter to run your mod")
-            print('- Example: -skipintro -server +skin Tails +color Rosy +wait 1 -warp tutorial +downloading off')
-            print("- (If you're still confused, refer to the 'command line parameters' page from the SRB2 Wiki)")
-            print("- To cancel, simply press enter without typing anything")
-            command = input(RESETCOLOR+">> ").lower().strip()
+            print(f"- Used to launch the game with special settings. DEFAULT: {GREEN}-skipintro{BLUE}")
+            print(f'- Example: {GREEN}-skipintro -server +downloading off +color orange +skin tails +"map tut -g 0 -f"{BLUE}')
+            print(f"{RED}- NOTE: Regardless of what parameters you type in here, the script will always use the {GREEN}-file (your_mod.pk3){RED} parameter to run your mod.")
+            verbose(f"    - Ensure no conflicts by using {GREEN}-prefile{RED} or {GREEN}+addfile{RED} instead to ensure there won't be conflicts.{BLUE}")
+            print(f"{BLACK}- TIP: Refer to the 'command line parameters' page from the SRB2 Wiki for more parameters{BLUE}.")
+            print()
+            print(f"{UNDERLINE}First, where do you want to save the file?{NOUNDERLINE}")
+            print(f"{GREEN}Nothing{BLUE}: Leave blank to cancel")
+            print(f"{GREEN}Enter 1{BLUE}: Default directory (Will be modified for everyone in this repository)")
+            print(f"{GREEN}Enter 2{BLUE}: Mod directory (Will be modified only for you, if it's on .gitignore)")
+
+            save_location = input(RESETCOLOR+">> ").strip()
+            print(BLUE, end="")
+            if save_location not in ["1", "2"]:
+                print("Operation cancelled.")
+                continue
+
+            print("Enter your args, or leave blank to delete the file.")
+            
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            mod_dir = find_mod_directory()
+            filename = ".SRB2C_ARGS"
+            filepath = os.path.join(script_dir if save_location == "1" else mod_dir, filename)
+            basedirname = os.path.basename(os.path.dirname(filepath))
+
+            if os.path.exists(filepath):
+                with open(filepath, "r") as file:
+                    existing_args = file.read().strip()
+                print(f"Current args in {GREEN}{basedirname}/{filename}{BLUE}:{GREEN} {existing_args}{BLUE}")
+
+            command = input(RESETCOLOR+">>> ").lower().strip()
             print(BLUE, end="")
             if command == "":
-                print("Operation cancelled by user.")
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    print(f"{filename} file was deleted.")
+                else:
+                    print(f"{filename} file does not exist.")
             else:
-                params = []
-                params.extend(command.split())
-                script_dir = os.path.dirname(os.path.abspath(__file__))
-                filename = ".SRB2C_ARGS"
-                filepath = os.path.join(script_dir, filename)
+                params = command.split()
                 with open(filepath, "w") as file:
-                    for i, param in enumerate(params):
-                        file.write(param)
-                        if i != len(params) - 1:
-                            file.write(" ")
-                print(filename,"file was created/updated (in the same directory as this script)!")
+                    file.write(" ".join(params))
+                print(f"{filename} file was created/updated in the {'default' if save_location == '1' else 'mod'} directory!")
         elif command == "quit":
             print(RESETCOLOR, end="")
             break
@@ -224,7 +246,7 @@ def run():
     - Requires the enviroment variable ``SRB2C_LOC``, which points to the user's SRB2 executable (if not provided, will return a warning)
     - Tries to read the ``.SRB2C_VERSIONINFO`` file (in the same directory as this script) and generate a file based on it.
         - If the file is not found, this step will be skipped
-    - Tries to read the ``.SRB2C_ARGS`` file (in the same directory as this script) and store its contents as launch parameters.
+    - Tries to read the ``.SRB2C_ARGS`` file (first in mod, then in the same directory as this script) and store its contents as launch parameters.
         - If the file is not found, it will default to ``-skipintro``
     - It will zip the current directory in the ``SRB2C_DL`` enviroment variable
         - If the variable is not found, the zip file will be stored in the same place as ``SRB2C_LOC``
@@ -234,6 +256,7 @@ def run():
       
     import subprocess
     import datetime
+    import shlex
     global runcount
 
     mod_dir = find_mod_directory()
@@ -271,22 +294,28 @@ def run():
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") # NOW! *thunder*
         gonnarun = True
         try:
+            fileInModDir = True
             args_file = os.path.join(mod_dir, ".SRB2C_ARGS")
             if not os.path.exists(args_file):
+                fileInModDir = False
                 args_file = os.path.join(os.path.dirname(__file__), ".SRB2C_ARGS")
-            
+
             with open(args_file, "r") as file:
-                extraargs = file.read().split()
+                args_content = file.read()
+                extraargs = shlex.split(args_content)
                 if runcount == 0:
                     BLUE = '\033[36m' if vscode else ''
                     GREEN = '\033[32m' if vscode else ''
-                    verbose(f"[{now}] Found {GREEN}.SRB2C_ARGS{BLUE} file")
+                    if isVerbose:
+                        where = os.path.basename(os.path.dirname(mod_dir if fileInModDir else os.path.dirname(__file__)))
+                        verbose(f"[{now}] Found {GREEN}.SRB2C_ARGS{BLUE} file in {where}")
         except FileNotFoundError:
             if runcount == 0:
                 BLUE = '\033[36m' if vscode else ''
                 GREEN = '\033[32m' if vscode else ''
                 verbose(f"[{now}] {GREEN}.SRB2C_ARGS{BLUE} file not found, so we will be using the default parameter: {GREEN}-skipintro{BLUE}")
             extraargs = ["-skipintro"]
+
         if "-prefile" in extraargs:
             prefile_index = extraargs.index("-prefile")
             if prefile_index + 1 < len(extraargs):
