@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v3.7 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v3.8 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -533,6 +533,8 @@ def create_versioninfo(datetime, subprocess):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(script_dir, ".SRB2C_VERSIONINFO")
 
+    parent_dir = None
+
     if not os.path.exists(input_file):
         parent_dir = os.path.dirname(script_dir)
         input_file = os.path.join(parent_dir, ".SRB2C_VERSIONINFO")
@@ -567,7 +569,7 @@ def create_versioninfo(datetime, subprocess):
     fetch_pattern = r'\$FETCH:([^:]+):([^:\n]+)'
     matches = re.findall(fetch_pattern, content)
     for file_name, variable in matches:
-        file_path = os.path.join(script_dir, file_name)
+        file_path = os.path.join(parent_dir or script_dir, file_name)
         if os.path.exists(file_path):
             with open(file_path, 'r') as fetch_file:
                 file_content = fetch_file.read()
