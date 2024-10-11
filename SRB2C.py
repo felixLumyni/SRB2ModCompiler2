@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v4.4 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v4.5 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -93,7 +93,7 @@ def main():
             print("Unset SRB2C_LOC and SRB2C_DL variables.")
         elif command == "args":
             print(f"- Used to launch the game with special settings. DEFAULT: {GREEN}-skipintro{BLUE}")
-            print(f'- Example: {GREEN}-skipintro -server +downloading off +color orange +skin tails +"map tut -g 0 -f"{BLUE}')
+            print(f'- Example: {GREEN}-skipintro -server +downloading off +color orange +skin tails +wait 1 +"map tut -g 0 -f"{BLUE}')
             print(f"{RED}- NOTE: Regardless of what parameters you type in here, the script will always use the {GREEN}-file (your_mod.pk3){RED} parameter to run your mod.")
             verbose(f"    - Ensure no conflicts by using {GREEN}-prefile{RED} or {GREEN}+addfile{RED} instead to ensure there won't be conflicts.{BLUE}")
             print(f"{BLACK}- TIP: Refer to the 'command line parameters' page from the SRB2 Wiki for more parameters{BLUE}.")
@@ -139,7 +139,11 @@ def main():
             print(RESETCOLOR, end="")
             break
         elif command == "":
-            run()
+            try:
+                run()
+            except Exception as e:
+                print(f"{RED}Error: {e}")
+                print(f"Double check your configuration files. If this is an internal error, please report this!{BLUE}")
         elif command == "nothing":
             print("stop it.")
         elif command == "<literally nothing>":
