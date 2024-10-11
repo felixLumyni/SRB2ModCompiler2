@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v4 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v4.1 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -267,7 +267,11 @@ def run():
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") # NOW! *thunder*
         gonnarun = True
         try:
-            with open(os.path.join(mod_dir, ".SRB2C_ARGS"), "r") as file:
+            args_file = os.path.join(mod_dir, ".SRB2C_ARGS")
+            if not os.path.exists(args_file):
+                args_file = os.path.join(os.path.dirname(__file__), ".SRB2C_ARGS")
+            
+            with open(args_file, "r") as file:
                 extraargs = file.read().split()
                 if runcount == 0:
                     BLUE = '\033[36m' if vscode else ''
@@ -279,7 +283,6 @@ def run():
                 GREEN = '\033[32m' if vscode else ''
                 verbose(f"[{now}] {GREEN}.SRB2C_ARGS{BLUE} file not found, so we will be using the default parameter: {GREEN}-skipintro{BLUE}")
             extraargs = ["-skipintro"]
-
         if "-prefile" in extraargs:
             prefile_index = extraargs.index("-prefile")
             if prefile_index + 1 < len(extraargs):
