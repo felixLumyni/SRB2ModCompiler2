@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v4.1 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v4.2 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -198,6 +198,26 @@ def main():
         else:
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
 
+def find_mod_directory():
+    mod_dir = os.path.dirname(__file__)
+    srb2c_modpath = os.path.join(mod_dir, '.SRB2C_MODPATH')
+
+    if os.path.exists(srb2c_modpath):
+        with open(srb2c_modpath, 'r') as f:
+            relative_path = f.read().strip()
+    
+            new_mod_dir = os.path.normpath(os.path.join(mod_dir, relative_path))
+    
+            if os.path.exists(new_mod_dir) and os.path.isdir(new_mod_dir):
+                return new_mod_dir
+            else:
+                vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
+                YELLOW = '\033[93m' if vscode else ''
+                BLUE = '\033[94m' if vscode else ''
+                print(f"{YELLOW}Warning: Path in .SRB2C_MODPATH is invalid. Defaulting to the original directory.{BLUE}")
+    
+    return mod_dir
+
 def run():
     """
     I'm adding this comment because this function does a lot of things:
@@ -211,30 +231,14 @@ def run():
     - After the zip file has been created/updated, it will then run the SRB2 executable in ``SRB2C_LOC``, with the ``-file`` parameter to run it
     - Aditionally, this will print useful information such as runcount and datetime
     """
-
-    mod_dir = os.path.dirname(__file__)
-    srb2c_modpath = os.path.join(mod_dir, '.SRB2C_MODPATH')
-
-    if os.path.exists(srb2c_modpath):
-        with open(srb2c_modpath, 'r') as f:
-            relative_path = f.read().strip()
-    
-            new_mod_dir = os.path.normpath(os.path.join(mod_dir, relative_path))
-    
-            if not os.path.exists(new_mod_dir):
-                raise FileNotFoundError(f"The path specified in .SRB2C_MODPATH does not exist: {new_mod_dir}")
-    
-            if not os.path.isdir(new_mod_dir):
-                raise NotADirectoryError(f"The path specified in .SRB2C_MODPATH is not a directory: {new_mod_dir}")
-    
-            mod_dir = new_mod_dir
-
-    basedirname = os.path.basename(mod_dir)
-    pk3name = "_"+basedirname+".pk3"
       
     import subprocess
     import datetime
     global runcount
+
+    mod_dir = find_mod_directory()
+    basedirname = os.path.basename(mod_dir)
+    pk3name = "_"+basedirname+".pk3"
 
     if runcount == 0:
         current_dir_contents = os.listdir(mod_dir)
@@ -610,13 +614,13 @@ def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_
 
 def create_versioninfo(datetime, subprocess):
     import re
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    input_file = os.path.join(script_dir, ".SRB2C_VERSIONINFO")
+    mod_dir = find_mod_directory()
+    input_file = os.path.join(mod_dir, ".SRB2C_VERSIONINFO")
 
     parent_dir = None
 
     if not os.path.exists(input_file):
-        parent_dir = os.path.dirname(script_dir)
+        parent_dir = os.path.dirname(mod_dir)
         input_file = os.path.join(parent_dir, ".SRB2C_VERSIONINFO")
         if not os.path.exists(input_file):
             verbose("No .SRB2C_VERSIONINFO file found in current or parent directory. Skipping version info generation.")
@@ -634,9 +638,9 @@ def create_versioninfo(datetime, subprocess):
     if not relative_path or relative_path.startswith('/') or '..' in relative_path or ':' in relative_path:
         raise ValueError("Invalid version info file path! The first line of .SRB2C_VERSIONINFO should be a simple filepath like 'Lua/VersionInfo.lua'")
 
-    output_file = os.path.join(script_dir, relative_path)
+    output_file = os.path.join(mod_dir, relative_path)
 
-    if not os.path.commonpath([script_dir, output_file]).startswith(script_dir):
+    if not os.path.commonpath([mod_dir, output_file]).startswith(mod_dir):
         raise ValueError("Invalid version info file path! The resulting path must be within the script's directory.")
 
     content = ''.join(lines[1:])
@@ -649,7 +653,7 @@ def create_versioninfo(datetime, subprocess):
     fetch_pattern = r'\$FETCH:([^:]+):([^:\n]+)'
     matches = re.findall(fetch_pattern, content)
     for file_name, variable in matches:
-        file_path = os.path.join(parent_dir or script_dir, file_name)
+        file_path = os.path.join(parent_dir or mod_dir, file_name)
         if os.path.exists(file_path):
             with open(file_path, 'r') as fetch_file:
                 file_content = fetch_file.read()
