@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v4.9 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v5 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -50,7 +50,7 @@ def main():
             print(f"{UNDERLINE}Extra commands:{NOUNDERLINE}")
             print(f"  {GREEN}verbose{BLUE} - Toggle detailed output")
             print(f"  {GREEN}mod{BLUE} - Change the relative path of the mod you're compiling")
-            print(f"  {GREEN}downloads{BLUE} - Update the secondary system variable that determines where your pk3 files will be saved")
+            print(f"  {GREEN}downloads{BLUE} - Update the secondary system variable that determines where your pk3 files will be saved instead of always on DOWNLOAD/_srb2compiled")
             print(f"  {GREEN}unset{BLUE} - Clear all system variables")
             print(f"  {GREEN}path{BLUE} - Show where all system variables point to")
             print(f"  {GREEN}args{BLUE} - Update your launch parameters as a file")
@@ -239,7 +239,7 @@ def find_mod_directory():
             else:
                 vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
                 YELLOW = '\033[93m' if vscode else ''
-                BLUE = '\033[94m' if vscode else ''
+                BLUE = '\033[36m' if vscode else ''
                 print(f"{YELLOW}Warning: Path in .SRB2C_MODPATH is invalid. Defaulting to the original directory.{BLUE}")
     
     return mod_dir
@@ -253,7 +253,7 @@ def run(isGUI=None):
     - Tries to read the ``.SRB2C_ARGS`` file (first in mod, then in the same directory as this script) and store its contents as launch parameters.
         - If the file is not found, it will default to ``-skipintro``
     - It will zip the current directory in the ``SRB2C_DL`` enviroment variable
-        - If the variable is not found, the zip file will be stored in the same place as ``SRB2C_LOC``
+        - If the variable is not found, the zip file will be stored in ``SRB2C_LOC``/DOWNLOAD/_srb2compiled
     - After the zip file has been created/updated, it will then run the SRB2 executable in ``SRB2C_LOC``, with the ``-file`` parameter to run it
     - Aditionally, this will print useful information such as runcount and datetime
     """
@@ -274,6 +274,7 @@ def run(isGUI=None):
         verbose(current_dir_contents)
 
         if len(found_parts) < 3:
+            proceed = True
             if isGUI:
                 from tkinter import messagebox
                 proceed = messagebox.askyesno(
@@ -289,7 +290,7 @@ def run(isGUI=None):
             else:
                 vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
                 YELLOW = '\033[93m' if vscode else ''
-                BLUE = '\033[94m' if vscode else ''
+                BLUE = '\033[36m' if vscode else ''
                 RESETCOLOR = '\033[0m' if vscode else ''
                 print(f"{YELLOW}Warning: The directory you're trying to compile probably isn't the mod's files! Less than 3 common SRB2 parts (Lua, Sprites, SOC...) were found in the current directory ({basedirname}).{BLUE}")
                 verbose(f"Found parts: {', '.join(found_parts) if found_parts else 'None.'}")
@@ -297,9 +298,11 @@ def run(isGUI=None):
                 if proceed != 'y':
                     print(f"{BLUE}Operation cancelled.")
                     return
+                else:
+                    print(BLUE, end="")
     
     srb2_loc = get_environment_variable("SRB2C_LOC")
-    srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.dirname(srb2_loc)
+    srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.join(os.path.dirname(srb2_loc), "DOWNLOAD", "_srb2compiled")
     vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
     if srb2_loc:
         try:
@@ -353,7 +356,7 @@ def run(isGUI=None):
         create_or_update_zip(mod_dir, srb2_dl, pk3name)
         if os.path.exists(os.path.join(srb2_dl, pk3name)):
             if runcount == 0:
-                specified = "specified" if get_environment_variable("SRB2C_DL") else "SRB2"
+                specified = "specified" if get_environment_variable("SRB2C_DL") else "SRB2's DOWNLOAD/_srb2compiled"
                 print(f"- '{GREEN}"+pk3name+f"{BLUE}' (The contents of this script's directory) was created/updated in your {specified} directory")
                 print("- Running SRB2 with that mod. Happy testing!")
             else:
@@ -478,7 +481,7 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
                     rel_path = os.path.relpath(source_file_path, source_path)
 
                     # Exclude this script and git files
-                    if not (file.endswith('.py') or file.endswith('.md') or file.endswith('LICENSE') or file.startswith('.') or '.git' in rel_path):
+                    if not (file.endswith('.py') or file.endswith('.pyw') or file.endswith('.md') or file.endswith('LICENSE') or file.startswith('.') or '.git' in rel_path):
                         if rel_path in existing_zip.namelist():
                             # Read the existing file from the zip archive
                             with existing_zip.open(rel_path) as existing_file:
@@ -507,7 +510,7 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
                     source_file_path = os.path.join(root, file)
                     rel_path = os.path.relpath(source_file_path, source_path)
                     # Exclude this script and git files
-                    if not (file.endswith('.py') or file.endswith('.md') or file.endswith('LICENSE') or file.startswith('.') or '.git' in rel_path):
+                    if not (file.endswith('.py') or file.endswith('.pyw') or file.endswith('.md') or file.endswith('LICENSE') or file.startswith('.') or '.git' in rel_path):
                         new_zip.write(source_file_path, rel_path)
 
 def sanitized_exe_filepath(user_input):

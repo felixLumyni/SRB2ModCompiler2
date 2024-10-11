@@ -18,7 +18,7 @@ View it here in github -> Raw -> Right Click -> Save as file
 
 <details><summary><b>What do you mean it "compiles" my mod?</b></summary>
 
-- It makes a pk3 file containing the contents (excluding some files, such as git files and itself) of the directory the script is located at (it will also use that to determine the name of the file). By default, this newly made pk3 will be located in your  - SRB2 directory, but it can be changed with the ``downloads`` command
+- It makes a pk3 file containing the contents (excluding some files, such as git files and itself) of the directory the script is located at (it will also use that to determine the name of the file). By default, this newly made pk3 will be located in (exe's dir)/DOWNLOAD/_srb2compiled, but it can be changed with the ``downloads`` command
 - Opens your SRB2 executable
 - Skips the intro
 - Loads your mod (with custom parameters if you've used the ``args`` command)
