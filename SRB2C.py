@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v3.8 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v4 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -15,6 +15,7 @@ LAZY IMPORTS:
 - tkinter: Only in the file_explorer() and directory_explorer() functions
 - zipfile: Only in the unzip_pk3() and create_or_update_zip() functions
 - shutil: Only in the unzip_pk3() function
+- re: Only in the create_versioninfo() function
 '''
 
 runcount = 0
@@ -48,6 +49,7 @@ def main():
             print(f"  {GREEN}set{BLUE} - Update the system variable that points to your SRB2 executable")
             print(f"{UNDERLINE}Extra commands:{NOUNDERLINE}")
             print(f"  {GREEN}verbose{BLUE} - Toggle detailed output")
+            print(f"  {GREEN}mod{BLUE} - Change the relative path of the mod you're compiling")
             print(f"  {GREEN}downloads{BLUE} - Update the secondary system variable that determines where your pk3 files will be saved")
             print(f"  {GREEN}unset{BLUE} - Clear all system variables")
             print(f"  {GREEN}path{BLUE} - Show where all system variables point to")
@@ -94,7 +96,7 @@ def main():
             print("- NOTE: Regardless of what parameters you type in here, the script will always use the -file <MOD> parameter to run your mod")
             print('- Example: -skipintro -server +skin Tails +color Rosy +wait 1 -warp tutorial +downloading off')
             print("- (If you're still confused, refer to the 'command line parameters' page from the SRB2 Wiki)")
-            print("- If you wish to cancel, simply press enter without typing anything")
+            print("- To cancel, simply press enter without typing anything")
             command = input(RESETCOLOR+">> ").lower().strip()
             print(BLUE, end="")
             if command == "":
@@ -153,11 +155,48 @@ def main():
             global isVerbose
             isVerbose = not isVerbose
             print(f"Verbose mode is now {GREEN if isVerbose else RED}{('enabled' if isVerbose else 'disabled')}{BLUE}.")
+        elif command == "mod":
+            print("- Enter the relative path of the mod to launch. Example: ../my_mod")
+            print("- Enter 'e' to use file explorer, or 'c' to delete the file and use the default (this script's directory).")
+            print("- To cancel, simply press enter without typing anything")
+            command = input(RESETCOLOR+">> ").lower().strip()
+            print(BLUE, end="")
+            if command == "":
+                print("Operation cancelled by user.")
+            elif command == "e":
+                print("Select a mod directory:")
+                mod_dir = directory_explorer()
+                if mod_dir:
+                    command = os.path.relpath(mod_dir, os.path.dirname(os.path.abspath(__file__)))
+                else:
+                    print("No directory selected. Operation cancelled.")
+                    continue
+            elif command == "c":
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                filename = ".SRB2C_MODPATH"
+                filepath = os.path.join(script_dir, filename)
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    print(f"{filename} file has been deleted.")
+                else:
+                    print(f"{filename} file does not exist.")
+                continue
+            
+            if command not in ["", "e", "c"]:
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                mod_dir = os.path.join(script_dir, command)
+                if os.path.isdir(mod_dir):
+                    filename = ".SRB2C_MODPATH"
+                    filepath = os.path.join(script_dir, filename)
+                    with open(filepath, "w") as file:
+                        file.write(command)
+                    print(filename,"file was created/updated (in the same directory as this script)!")
+                    global runcount
+                    runcount = 0
+                else:
+                    print(f"{RED}Error: The directory '{mod_dir}' does not exist.{BLUE}")
         else:
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
-
-COMMON_SRB2_PARTS = ['Lua', 'Sprites', 'Textures', 'Sounds', 'Graphics', 'SOC']
-# TODO: Warn/ask user if they really want to run this script if none of the above are found
 
 def run():
     """
@@ -172,9 +211,50 @@ def run():
     - After the zip file has been created/updated, it will then run the SRB2 executable in ``SRB2C_LOC``, with the ``-file`` parameter to run it
     - Aditionally, this will print useful information such as runcount and datetime
     """
+
+    mod_dir = os.path.dirname(__file__)
+    srb2c_modpath = os.path.join(mod_dir, '.SRB2C_MODPATH')
+
+    if os.path.exists(srb2c_modpath):
+        with open(srb2c_modpath, 'r') as f:
+            relative_path = f.read().strip()
+    
+            new_mod_dir = os.path.normpath(os.path.join(mod_dir, relative_path))
+    
+            if not os.path.exists(new_mod_dir):
+                raise FileNotFoundError(f"The path specified in .SRB2C_MODPATH does not exist: {new_mod_dir}")
+    
+            if not os.path.isdir(new_mod_dir):
+                raise NotADirectoryError(f"The path specified in .SRB2C_MODPATH is not a directory: {new_mod_dir}")
+    
+            mod_dir = new_mod_dir
+
+    basedirname = os.path.basename(mod_dir)
+    pk3name = "_"+basedirname+".pk3"
+      
     import subprocess
     import datetime
     global runcount
+
+    if runcount == 0:
+        current_dir_contents = os.listdir(mod_dir)
+        COMMON_SRB2_PARTS = ['Lua', 'Sprites', 'Skins', 'Textures', 'Sounds', 'Graphics', 'SOC']
+        found_parts = [part for part in COMMON_SRB2_PARTS if part in current_dir_contents]
+
+        verbose(current_dir_contents)
+
+        if len(found_parts) < 3:
+            vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
+            YELLOW = '\033[93m' if vscode else ''
+            BLUE = '\033[94m' if vscode else ''
+            RESETCOLOR = '\033[0m' if vscode else ''
+            print(f"{YELLOW}Warning: The directory you're trying to compile probably isn't the mod's files! Less than 3 common SRB2 parts (Lua, Sprites, SOC...) were found in the current directory ({basedirname}).{BLUE}")
+            verbose(f"Found parts: {', '.join(found_parts) if found_parts else 'None.'}")
+            proceed = input(f"{YELLOW}Are you sure you want to proceed here? (y/n): {RESETCOLOR}").lower().strip()
+            if proceed != 'y':
+                print(f"{BLUE}Operation cancelled.")
+                return
+    
     srb2_loc = get_environment_variable("SRB2C_LOC")
     srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.dirname(srb2_loc)
     vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
@@ -186,11 +266,8 @@ def run():
 
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") # NOW! *thunder*
         gonnarun = True
-        currentdir = os.path.dirname(__file__)
-        basedirname = os.path.basename(currentdir)
-        pk3name = "_"+basedirname+".pk3"
         try:
-            with open(os.path.join(currentdir, ".SRB2C_ARGS"), "r") as file:
+            with open(os.path.join(mod_dir, ".SRB2C_ARGS"), "r") as file:
                 extraargs = file.read().split()
                 if runcount == 0:
                     BLUE = '\033[36m' if vscode else ''
@@ -218,7 +295,7 @@ def run():
 
         if runcount == 0:
             print(f"- Zipping '{GREEN}{basedirname}{BLUE}', please wait a moment...")
-        create_or_update_zip(currentdir, srb2_dl, pk3name)
+        create_or_update_zip(mod_dir, srb2_dl, pk3name)
         if os.path.exists(os.path.join(srb2_dl, pk3name)):
             if runcount == 0:
                 specified = "specified" if get_environment_variable("SRB2C_DL") else "SRB2"
