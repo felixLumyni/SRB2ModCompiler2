@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v3.6 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v3.7 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -529,12 +529,16 @@ def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_
 
 
 def create_versioninfo(datetime, subprocess):
+    import re
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(script_dir, ".SRB2C_VERSIONINFO")
-    
+
     if not os.path.exists(input_file):
-        verbose("No .SRB2C_VERSIONINFO file found. Skipping version info generation.")
-        return
+        parent_dir = os.path.dirname(script_dir)
+        input_file = os.path.join(parent_dir, ".SRB2C_VERSIONINFO")
+        if not os.path.exists(input_file):
+            verbose("No .SRB2C_VERSIONINFO file found in current or parent directory. Skipping version info generation.")
+            return
 
     with open(input_file, 'r') as file:
         lines = file.readlines()
@@ -559,6 +563,22 @@ def create_versioninfo(datetime, subprocess):
     now = datetime.datetime.now()
     content = content.replace("$DATE", now.strftime("%Y-%m-%d"))
     content = content.replace("$TIME", now.strftime("%H:%M:%S"))
+
+    fetch_pattern = r'\$FETCH:([^:]+):([^:\n]+)'
+    matches = re.findall(fetch_pattern, content)
+    for file_name, variable in matches:
+        file_path = os.path.join(script_dir, file_name)
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as fetch_file:
+                file_content = fetch_file.read()
+                value = re.search(f'{variable}(.+)', file_content)
+                if value:
+                    content = content.replace(f'$FETCH:{file_name}:{variable}', value.group(1))
+                else:
+                    content = content.replace(f'$FETCH:{file_name}:{variable}', '"value_not_found"')
+        else:
+            content = content.replace(f'$FETCH:{file_name}:{variable}', '"file_not_found"')
+            verbose(f"$FETCH: File {file_name} not found")
 
     try:
         branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
