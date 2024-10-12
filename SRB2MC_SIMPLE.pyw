@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler-Simple by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler-Simple v1 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -27,7 +27,7 @@ def main():
     else:
         message = "SRB2 executable not found.\nClick OK to locate it and run."
         if messagebox.askokcancel("SRB2ModCompiler", message):
-            srb2_path = SRB2C.choose_srb2_executable(True)
+            srb2_path = SRB2C.choose_srb2_executable()
             if srb2_path:
                 attempt(SRB2C.run, True, messagebox)
 

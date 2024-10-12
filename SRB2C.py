@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v5 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v5.1 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -266,6 +266,12 @@ def run(isGUI=None):
     basedirname = os.path.basename(mod_dir)
     pk3name = "_"+basedirname+".pk3"
 
+    vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
+    BLUE = '\033[36m' if vscode else ''
+    YELLOW = '\033[93m' if vscode else ''
+    GREEN = '\033[32m' if vscode else ''
+    RESETCOLOR = '\033[0m' if vscode else ''
+
     if runcount == 0:
         current_dir_contents = os.listdir(mod_dir)
         COMMON_SRB2_PARTS = ['Lua', 'Sprites', 'Skins', 'Textures', 'Sounds', 'Graphics', 'SOC']
@@ -281,18 +287,14 @@ def run(isGUI=None):
                     title=f"Warning in directory: {basedirname}",
                     message=(f"The directory you're trying to compile probably isn't the mod's files! "
                              f"Less than 3 common SRB2 parts (Lua, Sprites, SOC...) were found in the current directory. "
-                             f"Do you want to proceed?"),
+                             f"Are you sure you want to proceed here?"),
                     icon='warning'
                     )
             if not proceed:
                 print("Operation cancelled.")
                 return
-            else:
-                vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
-                YELLOW = '\033[93m' if vscode else ''
-                BLUE = '\033[36m' if vscode else ''
-                RESETCOLOR = '\033[0m' if vscode else ''
-                print(f"{YELLOW}Warning: The directory you're trying to compile probably isn't the mod's files! Less than 3 common SRB2 parts (Lua, Sprites, SOC...) were found in the current directory ({basedirname}).{BLUE}")
+            elif not isGUI:
+                print(f"{YELLOW}Warning: The directory you're trying to compile ({basedirname}) probably isn't the mod's files! Less than 3 common SRB2 parts (Lua, Sprites, SOC...) were found in the current directory.{BLUE}")
                 verbose(f"Found parts: {', '.join(found_parts) if found_parts else 'None.'}")
                 proceed = input(f"{YELLOW}Are you sure you want to proceed here? (y/n): {RESETCOLOR}").lower().strip()
                 if proceed != 'y':
@@ -303,7 +305,6 @@ def run(isGUI=None):
     
     srb2_loc = get_environment_variable("SRB2C_LOC")
     srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.join(os.path.dirname(srb2_loc), "DOWNLOAD", "_srb2compiled")
-    vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
     if srb2_loc:
         try:
             create_versioninfo(datetime, subprocess)
@@ -326,15 +327,11 @@ def run(isGUI=None):
                 args_content = file.read()
                 extraargs = shlex.split(args_content)
                 if runcount == 0:
-                    BLUE = '\033[36m' if vscode else ''
-                    GREEN = '\033[32m' if vscode else ''
                     if isVerbose:
                         where = os.path.basename(os.path.dirname(mod_dir if fileInModDir else os.path.dirname(__file__)))
                         verbose(f"[{now}] Found {GREEN}.SRB2C_ARGS{BLUE} file in {where}")
         except FileNotFoundError:
             if runcount == 0:
-                BLUE = '\033[36m' if vscode else ''
-                GREEN = '\033[32m' if vscode else ''
                 verbose(f"[{now}] {GREEN}.SRB2C_ARGS{BLUE} file not found, so we will be using the default parameter: {GREEN}-skipintro{BLUE}")
             extraargs = ["-skipintro"]
 
