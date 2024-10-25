@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v5.22 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v5.3 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -478,7 +478,13 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
                     rel_path = os.path.relpath(source_file_path, source_path)
 
                     # Exclude this script and git files
-                    if not (file.endswith('.py') or file.endswith('.pyw') or file.endswith('.md') or file.endswith('LICENSE') or file.startswith('.') or '.git' in rel_path):
+                    if not (file.endswith('.py')
+                            or file.endswith('.pyw')
+                            or file.endswith('.md')
+                            or file.endswith('LICENSE')
+                            or file.endswith('.ase')
+                            or file.startswith('.')
+                            or '.git' in rel_path):
                         if rel_path in existing_zip.namelist():
                             # Read the existing file from the zip archive
                             with existing_zip.open(rel_path) as existing_file:
@@ -508,7 +514,13 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
                     source_file_path = os.path.join(root, file)
                     rel_path = os.path.relpath(source_file_path, source_path)
                     # Exclude this script and git files
-                    if not (file.endswith('.py') or file.endswith('.pyw') or file.endswith('.md') or file.endswith('LICENSE') or file.startswith('.') or '.git' in rel_path):
+                    if not (file.endswith('.py')
+                            or file.endswith('.pyw')
+                            or file.endswith('.md')
+                            or file.endswith('LICENSE')
+                            or file.endswith('.ase')
+                            or file.startswith('.')
+                            or '.git' in rel_path):
                         new_zip.write(source_file_path, rel_path)
 
 def sanitized_exe_filepath(user_input):
