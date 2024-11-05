@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v5.3 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v5.4 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -144,6 +144,20 @@ def main():
             except Exception as e:
                 print(f"{RED}Error: {e}")
                 print(f"Double check your configuration files. If this is an internal error, please report this!{BLUE}")
+        elif command == "multirun":
+            print("Enter the number of instances you want to run.")
+            command = input(RESETCOLOR+">> ").strip()
+            print(BLUE, end="")
+            try:
+                command = int(command)
+                try:
+                    run(multiCount=command)
+                except Exception as e:
+                    print(f"{RED}Error: {e}")
+                    print(f"Double check your configuration files. If this is an internal error, please report this!{BLUE}")
+            except ValueError:
+                print("Operation cancelled due to invalid input.")
+                continue
         elif command == "nothing":
             print("stop it.")
         elif command == "<literally nothing>":
@@ -244,7 +258,7 @@ def find_mod_directory():
     
     return mod_dir
 
-def run(isGUI=None):
+def run(isGUI=None, multiCount=0):
     """
     I'm adding this comment because this function does a lot of things:
     - Requires the enviroment variable ``SRB2C_LOC``, which points to the user's SRB2 executable (if not provided, will return a warning)
@@ -364,7 +378,27 @@ def run(isGUI=None):
             print(f"{RED}ERROR:{BLUE} Pk3 not detected, maybe I don't have file writing permissions?")
             gonnarun = False
         if gonnarun:
-            subprocess.run(args, cwd=os.path.dirname(srb2_loc))
+            if multiCount > 0:
+                # First launch dedicated server
+                server_args = args.copy()
+                server_args.extend(["-dedicated"])
+                subprocess.Popen(server_args, cwd=os.path.dirname(srb2_loc))
+                
+                # Launch client instances
+                for _ in range(multiCount):
+                    client_args = args.copy()
+                    if "-server" in client_args:
+                        client_args.pop(client_args.index("-server"))
+                    if "-warp" in client_args:
+                        warp_index = client_args.index("-warp")
+                        client_args.pop(warp_index)
+                        if warp_index + 1 < len(client_args):
+                            client_args.pop(warp_index + 1)
+                    client_args.extend(["+connect", "localhost"])
+                    subprocess.Popen(client_args, cwd=os.path.dirname(srb2_loc))
+            else:
+                # Normal single instance launch
+                subprocess.run(args, cwd=os.path.dirname(srb2_loc))
             runcount = runcount + 1
     else:
         GREEN = '\033[32m' if vscode else ''
