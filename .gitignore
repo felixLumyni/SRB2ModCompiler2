@@ -1,4 +1,12 @@
-*/
-*.pk3
-*.sh
-.SRB2C_*
+# Ignore SRB2ModCompiler files in the subfolders
+**/.SRB2C_ARGS
+**/*.py
+**/*.pyw
+
+# But don't ignore the ones in the root directory
+!/.SRB2C_ARGS
+!/*.py
+!/*.pyw
+
+# Also here's this in case you're a mac user xd
+.DS_Store
