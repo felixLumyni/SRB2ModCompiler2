@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v5.5 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v5.6 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -11,9 +11,9 @@ LAZY IMPORTS:
 - argparse: Only when running the script
 - subprocess, datetime and shlex: Only in the run() function
 - winreg: Only in the set_environment_variable() and get_environment_variable() functions
-- platform: Same as above, but also in the 'cls' command
+- platform: Same as above, but also in the "cls" command
 - tkinter: Only in the file_explorer() and directory_explorer() functions
-- zipfile: Only in the unzip_pk3() and create_or_update_zip() functions
+- io and zipfile: Only in the unzip_pk3() and create_or_update_zip() functions
 - shutil: Only in the unzip_pk3() function
 - re: Only in the create_versioninfo() function
 '''
