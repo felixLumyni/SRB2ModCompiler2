@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v5.8 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v5.9 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -143,6 +143,7 @@ def main():
                 run()
             except Exception as e:
                 print(f"{RED}Error: {e}")
+                verbose("Stack trace:" + str(e))
                 print(f"Double check your configuration files. If this is an internal error, please report this!{BLUE}")
         elif command == "multirun":
             print("Enter the number of instances you want to run.")
@@ -154,6 +155,7 @@ def main():
                     run(multiCount=command)
                 except Exception as e:
                     print(f"{RED}Error: {e}")
+                    verbose("Stack trace:" + str(e))
                     print(f"Double check your configuration files. If this is an internal error, please report this!{BLUE}")
             except ValueError:
                 print("Operation cancelled due to invalid input.")
