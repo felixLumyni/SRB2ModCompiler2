@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v5.7 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v5.8 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -490,6 +490,10 @@ def directory_explorer():
     return directory_path
 
 def create_or_update_zip(source_path: str, destination_path: str, zip_name: str):
+    '''
+    This function aims to create or update a zip file using as least write operations as possible.
+    SSD health is important when you're zipping a lot of files frequently.
+    '''
     import io
     import zipfile
     zip_full_path = os.path.join(destination_path, zip_name)
@@ -539,7 +543,7 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
                                 source_file_data = source_file.read()
                             # Compare files and update if needed
                             if existing_file_data != source_file_data:
-                                temp_zip.writestr(rel_path, source_file_data)
+                                temp_zip.write(rel_path, source_file_data)
                         else:
                             verbose(f"Adding new file: {rel_path}")
                             # If the file is not in the existing zip, add it
