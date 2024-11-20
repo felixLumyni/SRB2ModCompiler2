@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v5.99 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v5.999 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -27,6 +27,7 @@ def verbose(*args, **kwargs):
         print(*args, **kwargs)
 
 def main():
+    global isVerbose
     vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
     RED = '\033[31m' if vscode else ''
     GREEN = '\033[32m' if vscode else ''
@@ -199,7 +200,6 @@ def main():
             else:
                 print("Operation cancelled. No valid file selected or found.")
         elif command == "verbose":
-            global isVerbose
             isVerbose = not isVerbose
             print(f"Verbose mode is now {GREEN if isVerbose else RED}{('enabled' if isVerbose else 'disabled')}{BLUE}.")
         elif command == "mod":
