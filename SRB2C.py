@@ -427,7 +427,19 @@ def get_environment_variable(variable: str):
         finally:
             winreg.CloseKey(key)
     else:
-        return os.environ.get(variable)
+        if sysvar is not None:
+            return sysvar
+
+        shell_config_file = os.path.expanduser("~/.bashrc")  # Modify if you're using a different shell
+        try:
+            with open(shell_config_file, "r") as file:
+                lines = file.readlines()
+                for line in lines:
+                    if line.startswith(f"export {variable}="):
+                        # Extract value from the line, e.g., export MY_VAR="value"
+                        return line.split('=')[1].strip().strip('"')
+        except FileNotFoundError:
+            return None
 
     return sysvar
 
