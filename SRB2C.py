@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v5.999 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v6 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -11,7 +11,7 @@ LAZY IMPORTS:
 - argparse: Only when running the script
 - subprocess, datetime and shlex: Only in the run() function
 - winreg: Only in the set_environment_variable() and get_environment_variable() functions
-- platform: Same as above, but also in the "cls" command
+- platform: Same as above, but also in the run and "cls" commands
 - tkinter: Only in the file_explorer() and directory_explorer() functions
 - io and zipfile: Only in the unzip_pk3() and create_or_update_zip() functions
 - shutil: Only in the unzip_pk3() function
@@ -439,7 +439,14 @@ def set_environment_variable(variable, value):
         winreg.SetValueEx(key, variable, 0, winreg.REG_EXPAND_SZ, value)
         winreg.CloseKey(key)
     else:
-        os.environ[variable] = value
+        # Linux implementation
+        import subprocess
+        if value is None:
+            subprocess.run(f"sed -i '/export {variable}=/d' ~/.bashrc", shell=True)
+        else:
+            subprocess.run(f"echo 'export {variable}=\"{value}\"' >> ~/.bashrc", shell=True)
+        # Reload bashrc
+        subprocess.run(". ~/.bashrc", shell=True)
 
 def choose_srb2_executable():
     ext = "Do keep in mind your current path will be overwritten!" if get_environment_variable("SRB2C_LOC") else ""
@@ -503,6 +510,7 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
     '''
     import io
     import zipfile
+    import platform
     zip_full_path = os.path.join(destination_path, zip_name)
     compressionmethod = zipfile.ZIP_DEFLATED
 
@@ -549,8 +557,8 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
                             with open(source_file_path, 'rb') as source_file:
                                 source_file_data = source_file.read()
                             # Compare files and update if needed
-                            if existing_file_data != source_file_data:
-                                temp_zip.write(rel_path, source_file_data)
+                            if existing_file_data != source_file_data or platform.system() == "Linux":
+                                temp_zip.writestr(rel_path, source_file_data)
                         else:
                             verbose(f"Adding new file: {rel_path}")
                             # If the file is not in the existing zip, add it
