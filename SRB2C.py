@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v6 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v6.1 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -432,21 +432,32 @@ def get_environment_variable(variable: str):
     return sysvar
 
 def set_environment_variable(variable, value):
+    import os
     import platform
+    
     if platform.system() == "Windows":
         import winreg
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Environment', 0, winreg.KEY_SET_VALUE)
         winreg.SetValueEx(key, variable, 0, winreg.REG_EXPAND_SZ, value)
         winreg.CloseKey(key)
     else:
-        # Linux implementation
-        import subprocess
-        if value is None:
-            subprocess.run(f"sed -i '/export {variable}=/d' ~/.bashrc", shell=True)
-        else:
-            subprocess.run(f"echo 'export {variable}=\"{value}\"' >> ~/.bashrc", shell=True)
-        # Reload bashrc
-        subprocess.run(". ~/.bashrc", shell=True)
+        shell_config_file = os.path.expanduser("~/.bashrc")  # Adjust for your shell, e.g., ~/.zshrc for zsh
+        export_command = f"export {variable}={value}\n"
+
+        with open(shell_config_file, "a+") as file:
+            file.seek(0)
+            lines = file.readlines()
+            if any(line.startswith(f"export {variable}=") for line in lines):
+                file.seek(0)
+                file.truncate()
+                for line in lines:
+                    if line.startswith(f"export {variable}="):
+                        file.write(export_command)
+                    else:
+                        file.write(line)
+            else:
+                file.write(export_command)
+        os.system(f"source {shell_config_file}")
 
 def choose_srb2_executable():
     ext = "Do keep in mind your current path will be overwritten!" if get_environment_variable("SRB2C_LOC") else ""
