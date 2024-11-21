@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v6.2 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v6.3 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -537,6 +537,10 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
     zip_full_path = os.path.join(destination_path, zip_name)
     compressionmethod = zipfile.ZIP_DEFLATED
 
+    if platform.system() == "Linux" and os.path.exists(zip_full_path):
+        os.remove(zip_full_path)
+        verbose(f"Removed existing zip file on Linux: {zip_name}")
+    
     # Check if the destination zip file already exists
     if os.path.exists(zip_full_path):
         verbose(f"Zip file '{zip_name}' already exists, updating it...")
@@ -580,7 +584,7 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
                             with open(source_file_path, 'rb') as source_file:
                                 source_file_data = source_file.read()
                             # Compare files and update if needed
-                            if existing_file_data != source_file_data or platform.system() == "Linux":
+                            if existing_file_data != source_file_data:
                                 temp_zip.writestr(rel_path, source_file_data)
                         else:
                             verbose(f"Adding new file: {rel_path}")
