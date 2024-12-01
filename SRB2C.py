@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v6.5 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v6.6 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -444,7 +444,6 @@ def get_environment_variable(variable: str):
     return sysvar
 
 def set_environment_variable(variable, value):
-    import os
     import platform
     
     if platform.system() == "Windows":
@@ -453,23 +452,20 @@ def set_environment_variable(variable, value):
         winreg.SetValueEx(key, variable, 0, winreg.REG_EXPAND_SZ, value)
         winreg.CloseKey(key)
     else:
-        shell_config_file = os.path.expanduser("~/.bashrc")  # Adjust for your shell, e.g., ~/.zshrc for zsh
-        export_command = f"export {variable}={value}\n"
-
-        with open(shell_config_file, "a+") as file:
-            file.seek(0)
+        shell_config_file = os.path.expanduser("~/.bashrc")
+        
+        with open(shell_config_file, "r") as file:
             lines = file.readlines()
-            if any(line.startswith(f"export {variable}=") for line in lines):
-                file.seek(0)
-                file.truncate()
-                for line in lines:
-                    if line.startswith(f"export {variable}="):
-                        file.write(export_command)
-                    else:
-                        file.write(line)
-            else:
-                file.write(export_command)
-        os.system(f"source {shell_config_file}")
+        
+        new_lines = [line for line in lines if not line.startswith(f"export {variable}=")]
+        
+        if value is not None:
+            new_lines.append(f"export {variable}={value}\n")
+            
+        with open(shell_config_file, "w") as file:
+            file.writelines(new_lines)
+
+        os.system(f". {shell_config_file}")
 
 def choose_srb2_executable():
     ext = "Do keep in mind your current path will be overwritten!" if get_environment_variable("SRB2C_LOC") else ""
@@ -553,13 +549,13 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
             # Compare source files with existing zip contents
             with zipfile.ZipFile(existing_zip_data, 'r') as existing_zip, \
                 zipfile.ZipFile(temp_zip_data, 'w', compression=compressionmethod) as temp_zip:
-                
+
                 # First, copy all existing files from the old zip
                 verbose("Copying existing files to the temporary zip...")
                 for item in existing_zip.namelist():
                     zinfo = existing_zip.getinfo(item)
                     temp_zip.writestr(zinfo, existing_zip.read(item))
-                
+
                 # Then process the source directory
                 verbose("Processing source directory...")
                 for root, _, files in os.walk(source_path):
@@ -571,7 +567,7 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
                                 or file.endswith('.md') or file.endswith('LICENSE')
                                 or file.endswith('.ase') or file.startswith('.')
                                 or '.git' in rel_path):
-                            
+
                             # Check if the file already exists in the zip
                             if rel_path in existing_zip.namelist():
                                 verbose(f"Updating existing file: {rel_path}")
