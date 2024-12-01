@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v6.3 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v6.4 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -552,12 +552,13 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
 
         # Compare source files with existing zip contents
         with zipfile.ZipFile(existing_zip_data, 'r') as existing_zip, \
-             zipfile.ZipFile(temp_zip_data, 'w', compression=compressionmethod) as temp_zip:
+            zipfile.ZipFile(temp_zip_data, 'w', compression=compressionmethod) as temp_zip:
             
             # First, copy all existing files from the old zip
             verbose("Copying existing files to the temporary zip...")
             for item in existing_zip.namelist():
-                temp_zip.writestr(item, existing_zip.read(item))
+                zinfo = existing_zip.getinfo(item)
+                temp_zip.writestr(zinfo, existing_zip.read(item))
             
             # Then process the source directory
             verbose("Processing source directory...")
