@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v6.4 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v6.5 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -533,16 +533,13 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
     '''
     import io
     import zipfile
-    import platform
     zip_full_path = os.path.join(destination_path, zip_name)
     compressionmethod = zipfile.ZIP_DEFLATED
-
-    if platform.system() == "Linux" and os.path.exists(zip_full_path):
-        os.remove(zip_full_path)
-        verbose(f"Removed existing zip file on Linux: {zip_name}")
     
     # Check if the destination zip file already exists
     if os.path.exists(zip_full_path):
+        import warnings
+
         verbose(f"Zip file '{zip_name}' already exists, updating it...")
         # Read the existing zip file into memory
         with open(zip_full_path, 'rb') as existing_zip_file:
@@ -550,48 +547,48 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
         # Create a temporary in-memory zip file
         temp_zip_data = io.BytesIO()
 
-        # Compare source files with existing zip contents
-        with zipfile.ZipFile(existing_zip_data, 'r') as existing_zip, \
-            zipfile.ZipFile(temp_zip_data, 'w', compression=compressionmethod) as temp_zip:
-            
-            # First, copy all existing files from the old zip
-            verbose("Copying existing files to the temporary zip...")
-            for item in existing_zip.namelist():
-                zinfo = existing_zip.getinfo(item)
-                temp_zip.writestr(zinfo, existing_zip.read(item))
-            
-            # Then process the source directory
-            verbose("Processing source directory...")
-            for root, _, files in os.walk(source_path):
-                for file in files:
-                    source_file_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(source_file_path, source_path)
-                    # Exclude this script and git files
-                    if not (file.endswith('.py')
-                            or file.endswith('.pyw')
-                            or file.endswith('.md')
-                            or file.endswith('LICENSE')
-                            or file.endswith('.ase')
-                            or file.startswith('.')
-                            or '.git' in rel_path):
-                        
-                        # Check if the file already exists in the zip
-                        if rel_path in existing_zip.namelist():
-                            verbose(f"Updating existing file: {rel_path}")
-                            # Read the existing file from the zip archive
-                            with existing_zip.open(rel_path) as existing_file:
-                                existing_file_data = existing_file.read()
-                            # Read the source file data
-                            with open(source_file_path, 'rb') as source_file:
-                                source_file_data = source_file.read()
-                            # Compare files and update if needed
-                            if existing_file_data != source_file_data:
-                                temp_zip.writestr(rel_path, source_file_data)
-                        else:
-                            verbose(f"Adding new file: {rel_path}")
-                            # If the file is not in the existing zip, add it
-                            with open(source_file_path, 'rb') as source_file:
-                                temp_zip.writestr(rel_path, source_file.read())
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+
+            # Compare source files with existing zip contents
+            with zipfile.ZipFile(existing_zip_data, 'r') as existing_zip, \
+                zipfile.ZipFile(temp_zip_data, 'w', compression=compressionmethod) as temp_zip:
+                
+                # First, copy all existing files from the old zip
+                verbose("Copying existing files to the temporary zip...")
+                for item in existing_zip.namelist():
+                    zinfo = existing_zip.getinfo(item)
+                    temp_zip.writestr(zinfo, existing_zip.read(item))
+                
+                # Then process the source directory
+                verbose("Processing source directory...")
+                for root, _, files in os.walk(source_path):
+                    for file in files:
+                        source_file_path = os.path.join(root, file)
+                        rel_path = os.path.relpath(source_file_path, source_path)
+                        # Exclude unwanted files
+                        if not (file.endswith('.py') or file.endswith('.pyw')
+                                or file.endswith('.md') or file.endswith('LICENSE')
+                                or file.endswith('.ase') or file.startswith('.')
+                                or '.git' in rel_path):
+                            
+                            # Check if the file already exists in the zip
+                            if rel_path in existing_zip.namelist():
+                                verbose(f"Updating existing file: {rel_path}")
+                                # Read the existing file from the zip archive
+                                with existing_zip.open(rel_path) as existing_file:
+                                    existing_file_data = existing_file.read()
+                                # Read the source file data
+                                with open(source_file_path, 'rb') as source_file:
+                                    source_file_data = source_file.read()
+                                # Compare files and update if needed
+                                if '/' not in rel_path or existing_file_data != source_file_data:
+                                    temp_zip.writestr(rel_path, source_file_data)
+                            else:
+                                verbose(f"Adding new file: {rel_path}")
+                                # If the file is not in the existing zip, add it
+                                with open(source_file_path, 'rb') as source_file:
+                                    temp_zip.writestr(rel_path, source_file.read())
 
         # Update the destination zip file with the modified contents
         verbose("Updating the destination zip file...")
@@ -610,13 +607,10 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
                 for file in files:
                     source_file_path = os.path.join(root, file)
                     rel_path = os.path.relpath(source_file_path, source_path)
-                    # Exclude this script and git files
-                    if not (file.endswith('.py')
-                            or file.endswith('.pyw')
-                            or file.endswith('.md')
-                            or file.endswith('LICENSE')
-                            or file.endswith('.ase')
-                            or file.startswith('.')
+                    # Exclude unwanted files
+                    if not (file.endswith('.py') or file.endswith('.pyw')
+                            or file.endswith('.md') or file.endswith('LICENSE')
+                            or file.endswith('.ase') or file.startswith('.')
                             or '.git' in rel_path):
                         new_zip.write(source_file_path, rel_path)
         verbose(f"New zip file '{zip_name}' created successfully!")
