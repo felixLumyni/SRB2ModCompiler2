@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v6.6 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v7 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -17,6 +17,8 @@ LAZY IMPORTS:
 - shutil: Only in the unzip_pk3() function
 - re: Only in the create_versioninfo() function
 - traceback: Only when there is an error in the run() function while verbose is enabled
+- json: Only in the save_config() and load_config() functions
+- platformdirs: Only in the get_config_path() function
 '''
 
 runcount = 0
@@ -36,9 +38,12 @@ def main():
     BLACK = '\033[30m' if vscode else ''
     UNDERLINE = '\033[4m' if vscode else ''
     NOUNDERLINE = '\033[24m' if vscode else ''
-    set = GREEN+"set" if get_environment_variable("SRB2C_LOC") else RED+"unset"
+
+    profile, name = get_active_profile()
+    status = GREEN+"ready" if profile["exe_path"] else RED+"not set"
+    
     print(BLUE, end="")
-    print(f"Welcome to SRB2ModCompiler v2! Your system variable is {set}{BLUE}.")
+    print(f"Welcome to SRB2ModCompiler v2! Active profile '{GREEN}{name}{BLUE}' is {status}{BLUE}.")
     print(f"Type '{GREEN}help{BLUE}' to see available commands.")
     
     while True:
@@ -47,17 +52,21 @@ def main():
 
         if command == "help":
             print(f"{UNDERLINE}Essential commands:{NOUNDERLINE}")
-            print(f"  {GREEN}<literally nothing>{BLUE} - Compile this script's directory into a mod and launch it in SRB2! {BLACK}(Requires system variable below)")
-            print(f"  {GREEN}set{BLUE} - Update the system variable that points to your SRB2 executable")
+            print(f"  {GREEN}<literally nothing>{BLUE} - Compile this script's directory into a mod and launch it in SRB2! {BLACK}(Requires a valid profile){BLUE}")
+            print(f"  {GREEN}profile{BLUE} - Manage game profiles and settings")
+            #print(f"  {GREEN}vars{BLUE} - List the system variable commands {BLACK}(DEPRECATED, please use profiles instead){BLUE}")
             print(f"{UNDERLINE}Extra commands:{NOUNDERLINE}")
-            print(f"  {GREEN}verbose{BLUE} - Toggle detailed output")
-            print(f"  {GREEN}mod{BLUE} - Change the relative path of the mod you're compiling")
-            print(f"  {GREEN}downloads{BLUE} - Update the secondary system variable that determines where your pk3 files will be saved instead of always on DOWNLOAD/_srb2compiled")
-            print(f"  {GREEN}unset{BLUE} - Clear all system variables")
-            print(f"  {GREEN}path{BLUE} - Show where all system variables point to")
-            print(f"  {GREEN}args{BLUE} - Update your launch parameters as a file")
+            print(f"  {GREEN}mod{BLUE} - Specify where the mod files are with a relative path file")
+            print(f"  {GREEN}args{BLUE} - Update launch parameters as a file, for yourself or for the mod")
+            print(f"  {GREEN}verbose{BLUE} - Toggle detailed output, useful for debugging")
             print(f"  {GREEN}unzip{BLUE} - Decompile a pk3 back into a compile-able folder")
             print(f"  {GREEN}quit{BLUE} - Exit the program")
+        elif command == "vars":
+            print(f"{UNDERLINE}System variable commands (DEPRECATED, please use profiles instead):{NOUNDERLINE}")
+            print(f"  {GREEN}set{BLUE} - Update the system variable that points to your SRB2 executable")
+            print(f"  {GREEN}downloads{BLUE} - Update the secondary system variable that determines where your pk3 files will be saved instead of always on DOWNLOAD/_srb2compiled")
+            print(f"  {GREEN}path{BLUE} - Show where all system variables point to")
+            print(f"  {GREEN}unset{BLUE} - Clear all system variables")
         elif command == "path":
             srb2_loc = get_environment_variable("SRB2C_LOC")
             srb2_dl = get_environment_variable("SRB2C_DL")
@@ -242,6 +251,112 @@ def main():
                     runcount = 0
                 else:
                     print(f"{RED}Error: The directory '{mod_dir}' does not exist.{BLUE}")
+        elif command == "profile":
+            print(f"{UNDERLINE}Profile commands:{NOUNDERLINE}")
+            print(f"  {GREEN}profile{BLUE} - Show all profiles and which one is active")
+            print(f"  {GREEN}profile add{BLUE} - Create a new game profile") 
+            print(f"  {GREEN}profile switch{BLUE} - Change active profile")
+            print(f"  {GREEN}profile remove{BLUE} - Delete a profile")
+            print(f"  {GREEN}profile set{BLUE} - Set executable path for current profile")
+            print(f"  {GREEN}profile downloads{BLUE} - Set downloads path for current profile")
+        elif command == "profile add":
+            print("Enter the name for the new profile:")
+            name = input(RESETCOLOR+">> ").lower().strip()
+            print(BLUE, end="")
+            if name:
+                config = load_config()
+                if name in config["profiles"]:
+                    print(f"{RED}Profile {name} already exists!{BLUE}")
+                else:
+                    config["profiles"][name] = {
+                        "exe_path": "",
+                        "downloads_path": ""
+                    }
+                    save_config(config)
+                    print(f"Created new profile: {GREEN}{name}{BLUE}")
+            elif command == "profile switch":
+                config = load_config()
+                profiles = list(config["profiles"].keys())
+                print("Available profiles:")
+                for i, name in enumerate(profiles, 1):
+                    active = " (active)" if name == config["active_profile"] else ""
+                    print(f"{GREEN}{i}{BLUE}. {name}{active}")
+                print("\nEnter profile number to switch to:")
+                choice = input(RESETCOLOR+">> ").strip()
+                print(BLUE, end="")
+                try:
+                    idx = int(choice) - 1
+                    if 0 <= idx < len(profiles):
+                        config["active_profile"] = profiles[idx]
+                        save_config(config)
+                        print(f"Switched to profile: {GREEN}{profiles[idx]}{BLUE}")
+                        #global runcount
+                        runcount = 0
+                    else:
+                        print(f"{RED}Invalid profile number{BLUE}")
+                except ValueError:
+                    print(f"{RED}Invalid input{BLUE}")
+        elif command == "profile remove":
+            config = load_config()
+            if len(config["profiles"]) <= 1:
+                print(f"{RED}Cannot remove the last profile!{BLUE}")
+                continue
+            
+            print("Select profile to remove:")
+            profiles = list(config["profiles"].keys())
+            for i, name in enumerate(profiles, 1):
+                active = " (active)" if name == config["active_profile"] else ""
+                print(f"{GREEN}{i}{BLUE}. {name}{active}")
+
+            choice = input(RESETCOLOR+">> ").strip()
+            print(BLUE, end="")
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < len(profiles):
+                    name = profiles[idx]
+                    if name == config["active_profile"]:
+                        other_profile = next(p for p in profiles if p != name)
+                        config["active_profile"] = other_profile
+                    del config["profiles"][name]
+                    save_config(config)
+                    print(f"Removed profile: {GREEN}{name}{BLUE}")
+                    runcount = 0
+                else:
+                    print(f"{RED}Invalid profile number{BLUE}")
+            except ValueError:
+                print(f"{RED}Invalid input{BLUE}")
+        elif command == "profile set":
+            profile, name = get_active_profile()
+            print(f"Setting executable path for profile: {GREEN}{name}{BLUE}")
+            print(f"Enter {GREEN}E{BLUE} to open file explorer or paste the path to your executable here.")
+            command = input(RESETCOLOR+">> ")
+            print(BLUE, end="")
+            if command.lower().strip() == "e":
+                path = choose_srb2_executable()
+            else:
+                path = sanitized_exe_filepath(command)
+
+            if path:
+                config = load_config()
+                config["profiles"][name]["exe_path"] = path
+                save_config(config)
+                print(f"Updated executable path for profile {GREEN}{name}{BLUE}")
+        elif command == "profile downloads":
+            profile, name = get_active_profile()
+            print(f"Setting downloads path for profile: {GREEN}{name}{BLUE}")
+            print(f"Enter {GREEN}E{BLUE} to open file explorer or paste the path where you want your compiled mods to be saved.")
+            command = input(RESETCOLOR+">> ")
+            print(BLUE, end="")
+            if command.lower().strip() == "e":
+                path = choose_srb2_downloads()
+            else:
+                path = sanitized_directory_path(command)
+
+            if path:
+                config = load_config()
+                config["profiles"][name]["downloads_path"] = path
+                save_config(config)
+                print(f"Updated downloads path for profile {GREEN}{name}{BLUE}")
         else:
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
 
@@ -283,6 +398,7 @@ def run(isGUI=None, multiCount=0):
     import shlex
     global runcount
 
+    profile, profile_name = get_active_profile()
     mod_dir = find_mod_directory()
     basedirname = os.path.basename(mod_dir)
     pk3name = "_"+basedirname+".pk3"
@@ -324,8 +440,10 @@ def run(isGUI=None, multiCount=0):
                 else:
                     print(BLUE, end="")
     
-    srb2_loc = get_environment_variable("SRB2C_LOC")
-    srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.join(os.path.dirname(srb2_loc), "DOWNLOAD", "_srb2compiled")
+    #srb2_loc = get_environment_variable("SRB2C_LOC")
+    #srb2_dl = get_environment_variable("SRB2C_DL") if get_environment_variable("SRB2C_DL") else os.path.join(os.path.dirname(srb2_loc), "DOWNLOAD", "_srb2compiled")
+    srb2_loc = profile["exe_path"]
+    srb2_dl = profile["downloads_path"] or os.path.join(os.path.dirname(srb2_loc), "DOWNLOAD", "_srb2compiled")
     if srb2_loc:
         try:
             create_versioninfo(datetime, subprocess)
@@ -410,7 +528,8 @@ def run(isGUI=None, multiCount=0):
     else:
         GREEN = '\033[32m' if vscode else ''
         RESETCOLOR = '\033[0m' if vscode else ''
-        print(f"SRB2C_LOC system variable not set. Please run '{GREEN}set{BLUE}' to set it.")
+        RED = '\033[31m' if vscode else ''
+        print(f"{RED}No executable set for profile '{GREEN}{profile_name}{RED}'. Please run '{GREEN}profile set{RED}' to set it.")
 
 def get_environment_variable(variable: str):
     import platform
@@ -468,33 +587,24 @@ def set_environment_variable(variable, value):
         os.system(f". {shell_config_file}")
 
 def choose_srb2_executable():
-    ext = "Do keep in mind your current path will be overwritten!" if get_environment_variable("SRB2C_LOC") else ""
-
-    print(f"Please select the SRB2.exe file. {ext}")
     file_types = [("Executable files", "*.exe")]
-    srb2_path = file_explorer(file_types)
-
-    if srb2_path:
-        set_environment_variable("SRB2C_LOC", srb2_path)
-        print("SRB2C_LOC system variable updated! Now just press enter to run it.")
-    else:
-        print("Operation cancelled by user.")
-
-    return srb2_path
+    exe_path = file_explorer(file_types)
+    
+    if exe_path:
+        path = sanitized_exe_filepath(exe_path)
+        if path:
+            return path
+    return None
 
 def choose_srb2_downloads():
-    ext = "Do keep in mind your current path will be overwritten!" if get_environment_variable("SRB2C_DL") else ""
+    downloads_path = directory_explorer()
+    
+    if downloads_path:
+        path = sanitized_directory_path(downloads_path)
+        if path:
+            return path
+    return None
 
-    print(f"Please select the directory for SRB2 downloads. {ext}")
-    srb2_downloads_path = directory_explorer()
-
-    if srb2_downloads_path:
-        set_environment_variable("SRB2C_DL", srb2_downloads_path)
-        print("SRB2C_DL system variable updated! Now this is where your pk3's will be saved.")
-    else:
-        print("Operation cancelled by user.")
-
-    return srb2_downloads_path
 
 def file_explorer(file_types: list):
     from tkinter import filedialog, Tk
@@ -760,7 +870,6 @@ def organize_and_extract(file_info, zip_ref, base_folder, current_skin, current_
     verbose(f"Extracted: {file_name} to {category}")
     return current_skin, current_super
 
-
 def create_versioninfo(datetime, subprocess):
     import re
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -835,6 +944,41 @@ def create_versioninfo(datetime, subprocess):
         file.write(content)
 
     verbose(f"Version info file created at: {output_file}")
+
+def get_config_path():
+    from platformdirs import user_config_dir
+    config_dir = user_config_dir("srb2modcompiler", "Lumyni")
+    os.makedirs(config_dir, exist_ok=True)
+    return os.path.join(config_dir, "config.json")
+
+def load_config():
+    import json
+    config_path = get_config_path()
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    
+    # Default config structure
+    return {
+        "profiles": {
+            "srb2": {
+                "exe_path": get_environment_variable("SRB2C_LOC") or "",
+                "downloads_path": get_environment_variable("SRB2C_DL") or ""
+            }
+        },
+        "active_profile": "srb2"
+    }
+
+def save_config(config):
+    import json
+    config_path = get_config_path()
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=4)
+
+def get_active_profile():
+    config = load_config()
+    active_name = config["active_profile"]
+    return config["profiles"][active_name], active_name
 
 
 if __name__ == "__main__":
