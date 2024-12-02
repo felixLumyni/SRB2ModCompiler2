@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v7 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v7.1 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -19,6 +19,7 @@ LAZY IMPORTS:
 - traceback: Only when there is an error in the run() function while verbose is enabled
 - json: Only in the save_config() and load_config() functions
 - platformdirs: Only in the get_config_path() function
+- warnings: Only in the create_or_update_zip() function
 '''
 
 runcount = 0
@@ -660,41 +661,37 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
             with zipfile.ZipFile(existing_zip_data, 'r') as existing_zip, \
                 zipfile.ZipFile(temp_zip_data, 'w', compression=compressionmethod) as temp_zip:
 
-                # First, copy all existing files from the old zip
-                verbose("Copying existing files to the temporary zip...")
-                for item in existing_zip.namelist():
-                    zinfo = existing_zip.getinfo(item)
-                    temp_zip.writestr(zinfo, existing_zip.read(item))
+                # Create a dictionary of existing files for faster lookup
+                existing_files = {name: existing_zip.read(name) for name in existing_zip.namelist()}
 
-                # Then process the source directory
+                # Process the source directory
                 verbose("Processing source directory...")
                 for root, _, files in os.walk(source_path):
                     for file in files:
                         source_file_path = os.path.join(root, file)
                         rel_path = os.path.relpath(source_file_path, source_path)
+
                         # Exclude unwanted files
                         if not (file.endswith('.py') or file.endswith('.pyw')
                                 or file.endswith('.md') or file.endswith('LICENSE')
                                 or file.endswith('.ase') or file.startswith('.')
                                 or '.git' in rel_path):
 
-                            # Check if the file already exists in the zip
-                            if rel_path in existing_zip.namelist():
-                                verbose(f"Updating existing file: {rel_path}")
-                                # Read the existing file from the zip archive
-                                with existing_zip.open(rel_path) as existing_file:
-                                    existing_file_data = existing_file.read()
-                                # Read the source file data
-                                with open(source_file_path, 'rb') as source_file:
-                                    source_file_data = source_file.read()
-                                # Compare files and update if needed
-                                if '/' not in rel_path or existing_file_data != source_file_data:
+                            # Read source file data
+                            with open(source_file_path, 'rb') as source_file:
+                                source_file_data = source_file.read()
+
+                            # Check if file exists and needs updating
+                            if rel_path in existing_files:
+                                if existing_files[rel_path] != source_file_data:
+                                    verbose(f"Updating modified file: {rel_path}")
                                     temp_zip.writestr(rel_path, source_file_data)
+                                else:
+                                    verbose(f"Keeping unchanged file: {rel_path}")
+                                    temp_zip.writestr(rel_path, existing_files[rel_path])
                             else:
                                 verbose(f"Adding new file: {rel_path}")
-                                # If the file is not in the existing zip, add it
-                                with open(source_file_path, 'rb') as source_file:
-                                    temp_zip.writestr(rel_path, source_file.read())
+                                temp_zip.writestr(rel_path, source_file_data)
 
         # Update the destination zip file with the modified contents
         verbose("Updating the destination zip file...")
@@ -946,7 +943,7 @@ def create_versioninfo(datetime, subprocess):
     verbose(f"Version info file created at: {output_file}")
 
 def get_config_path():
-    from platformdirs import user_config_dir
+    from platformdirs import user_config_dir # type: ignore
     config_dir = user_config_dir("srb2modcompiler", "Lumyni")
     os.makedirs(config_dir, exist_ok=True)
     return os.path.join(config_dir, "config.json")
