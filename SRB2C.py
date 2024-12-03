@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v7.1 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v7.2 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -57,6 +57,8 @@ def main():
             print(f"  {GREEN}profile{BLUE} - Manage game profiles and settings")
             #print(f"  {GREEN}vars{BLUE} - List the system variable commands {BLACK}(DEPRECATED, please use profiles instead){BLUE}")
             print(f"{UNDERLINE}Extra commands:{NOUNDERLINE}")
+            print(f"  {GREEN}7z{BLUE} - Like pressing Enter but uses 7-Zip for compression")
+            print(f"  {GREEN}7z set{BLUE} - Set path to 7z.exe executable")
             print(f"  {GREEN}mod{BLUE} - Specify where the mod files are with a relative path file")
             print(f"  {GREEN}args{BLUE} - Update launch parameters as a file, for yourself or for the mod")
             print(f"  {GREEN}verbose{BLUE} - Toggle detailed output, useful for debugging")
@@ -358,6 +360,30 @@ def main():
                 config["profiles"][name]["downloads_path"] = path
                 save_config(config)
                 print(f"Updated downloads path for profile {GREEN}{name}{BLUE}")
+        elif command == "7z":
+            try:
+                run(use_7zip=True)
+            except Exception as e:
+                print(f"{RED}Error: {e}")
+                if isVerbose:
+                    import traceback
+                    traceback.print_exc()
+                print(f"Double check your configuration files. If this is an internal error, please report this!{BLUE}")
+        elif command == "7z set":
+            print(f"Enter {GREEN}E{BLUE} to open file explorer or paste the path to your 7-Zip executable (7z.exe)")
+            command = input(RESETCOLOR+">> ")
+            print(BLUE, end="")
+            if command.lower().strip() == "e":
+                file_types = [("7-Zip executable", "7z.exe")]
+                path = file_explorer(file_types)
+            else:
+                path = sanitized_exe_filepath(command)
+
+            if path:
+                config = load_config()
+                config["7z_path"] = path
+                save_config(config)
+                print(f"7-Zip path updated successfully!")
         else:
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
 
@@ -381,7 +407,7 @@ def find_mod_directory():
     
     return mod_dir
 
-def run(isGUI=None, multiCount=0):
+def run(isGUI=None, multiCount=0, use_7zip=False):
     """
     I'm adding this comment because this function does a lot of things:
     - Requires the enviroment variable ``SRB2C_LOC``, which points to the user's SRB2 executable (if not provided, will return a warning)
@@ -490,7 +516,27 @@ def run(isGUI=None, multiCount=0):
 
         if runcount == 0:
             print(f"- Zipping '{GREEN}{basedirname}{BLUE}', please wait a moment...")
-        create_or_update_zip(mod_dir, srb2_dl, pk3name)
+
+        if use_7zip:
+            config = load_config()
+            if not config["7z_path"]:
+                print(f"7-Zip path not set. Please run '{GREEN}7z set{BLUE}' first.")
+                return
+                
+            zip_path = os.path.join(srb2_dl, pk3name)
+            subprocess.run([
+                config["7z_path"],
+                "a", "-tzip",
+                "-mx=9",  # Maximum compression
+                zip_path,
+                os.path.join(mod_dir, "*"),
+                "-x!*.py", "-x!*.pyw", "-x!*.md", "-x!LICENSE",
+                "-x!*.ase", "-x!.git*", "-x!.*"
+            ])
+        else:
+            create_or_update_zip(mod_dir, srb2_dl, pk3name)
+
+
         if os.path.exists(os.path.join(srb2_dl, pk3name)):
             if runcount == 0:
                 specified = "specified" if get_environment_variable("SRB2C_DL") else "SRB2's DOWNLOAD/_srb2compiled"
@@ -963,7 +1009,8 @@ def load_config():
                 "downloads_path": get_environment_variable("SRB2C_DL") or ""
             }
         },
-        "active_profile": "srb2"
+        "active_profile": "srb2",
+        "7z_path": ""
     }
 
 def save_config(config):
