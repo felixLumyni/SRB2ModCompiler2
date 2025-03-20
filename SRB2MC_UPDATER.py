@@ -1,14 +1,27 @@
 '''
-# SRB2ModCompiler-Updater v1.1 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler-Updater v1.2 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
 
 import os
 import re
-import requests
 import shutil
 import sys
+try:
+    import requests
+except ModuleNotFoundError:
+    response = input("The 'requests' module is not installed. Would you like to install it now? (y/n)")
+
+    if response == 'y':
+        import subprocess
+        subprocess.run([sys.executable, "-m", "pip", "install", "requests"], check=True)
+        input("Installation complete. Press enter to restart the script.")
+        subprocess.run([sys.executable] + sys.argv)
+        sys.exit()
+    else:
+        print("Cannot continue without 'requests'. Please install it by using 'pip install requests'.")
+        sys.exit(1)
 
 class ScriptUpdater:
     def __init__(self, scripts):
@@ -156,3 +169,5 @@ if __name__ == "__main__":
 
     updater = ScriptUpdater(scripts_to_check)
     updater.check_for_updates()
+    import time
+    time.sleep(2)
