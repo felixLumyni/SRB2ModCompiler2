@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler-Updater v1 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler-Updater v1.1 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -8,6 +8,7 @@ import os
 import re
 import requests
 import shutil
+import sys
 
 class ScriptUpdater:
     def __init__(self, scripts):
@@ -112,8 +113,12 @@ class ScriptUpdater:
                 continue
 
             if local_version is None or remote_version > local_version:
-                print(f"🚀 {script['name']} is missing or outdated! New version: v{remote_version[0]}.{remote_version[1]}\n")
-                updates_needed.append(script)
+                if os.path.basename(script["local_path"]) == os.path.basename(sys.argv[0]):
+                    print(f"⚠️  I am outdated! Please replace me with: {script['remote_url']}\n")
+                    input("Press Enter to continue...")
+                else:
+                    print(f"🚀 {script['name']} is missing or outdated! New version: v{remote_version[0]}.{remote_version[1]}\n")
+                    updates_needed.append(script)
 
         if not updates_needed:
             if not failed:
@@ -141,6 +146,11 @@ if __name__ == "__main__":
             "name": "SRB2 Mod Compiler (Simple)",
             "local_path": "SRB2MC_SIMPLE.pyw",
             "remote_url": "https://raw.githubusercontent.com/felixLumyni/SRB2ModCompiler2/refs/heads/main/SRB2MC_SIMPLE.pyw"
+        },
+        {
+            "name": "SRB2 Mod Compiler Updater",
+            "local_path": sys.argv[0],
+            "remote_url": "https://raw.githubusercontent.com/felixLumyni/SRB2ModCompiler2/refs/heads/main/SRB2MC_UPDATER.py"
         }
     ]
 
