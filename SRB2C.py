@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v7.2 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v7.3 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -45,7 +45,7 @@ def main():
     
     print(BLUE, end="")
     print(f"Welcome to SRB2ModCompiler v2! Active profile '{GREEN}{name}{BLUE}' is {status}{BLUE}.")
-    print(f"Type '{GREEN}help{BLUE}' to see available commands.")
+    print(f"ENTER to begin, or type '{GREEN}help{BLUE}' to explore available commands.")
     
     while True:
         command = input(RESETCOLOR+"> ").lower().strip()
@@ -384,6 +384,8 @@ def main():
                 config["7z_path"] = path
                 save_config(config)
                 print(f"7-Zip path updated successfully!")
+        elif command == "enter":
+            print("dude.")
         else:
             print(f"Invalid command. Type '{GREEN}help{BLUE}' to see available commands.")
 
