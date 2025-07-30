@@ -29,16 +29,18 @@ def verbose(*args, **kwargs):
     if isVerbose:
         print(*args, **kwargs)
 
+vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
+RED = '\033[31m' if vscode else ''
+GREEN = '\033[32m' if vscode else ''
+BLUE = '\033[36m' if vscode else ''
+YELLOW = '\033[93m' if vscode else ''
+RESETCOLOR = '\033[0m' if vscode else ''
+BLACK = '\033[30m' if vscode else ''
+UNDERLINE = '\033[4m' if vscode else ''
+NOUNDERLINE = '\033[24m' if vscode else ''
+
 def main():
     global isVerbose
-    vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
-    RED = '\033[31m' if vscode else ''
-    GREEN = '\033[32m' if vscode else ''
-    BLUE = '\033[36m' if vscode else ''
-    RESETCOLOR = '\033[0m' if vscode else ''
-    BLACK = '\033[30m' if vscode else ''
-    UNDERLINE = '\033[4m' if vscode else ''
-    NOUNDERLINE = '\033[24m' if vscode else ''
 
     profile, name = get_active_profile()
     status = GREEN+"ready" if profile["exe_path"] else RED+"not set"
@@ -402,9 +404,6 @@ def find_mod_directory():
             if os.path.exists(new_mod_dir) and os.path.isdir(new_mod_dir):
                 return new_mod_dir
             else:
-                vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
-                YELLOW = '\033[93m' if vscode else ''
-                BLUE = '\033[36m' if vscode else ''
                 print(f"{YELLOW}Warning: Path in .SRB2C_MODPATH is invalid. Defaulting to the original directory.{BLUE}")
     
     return mod_dir
@@ -412,15 +411,12 @@ def find_mod_directory():
 def run(isGUI=None, multiCount=0, use_7zip=False):
     """
     I'm adding this comment because this function does a lot of things:
-    - Requires the enviroment variable ``SRB2C_LOC``, which points to the user's SRB2 executable (if not provided, will return a warning)
-    - Tries to read the ``.SRB2C_VERSIONINFO`` file (in the same directory as this script) and generate a file based on it.
-        - If the file is not found, this step will be skipped
-    - Tries to read the ``.SRB2C_ARGS`` file (first in mod, then in the same directory as this script) and store its contents as launch parameters.
-        - If the file is not found, it will default to ``-skipintro``
-    - It will zip the current directory in the ``SRB2C_DL`` enviroment variable
-        - If the variable is not found, the zip file will be stored in ``SRB2C_LOC``/DOWNLOAD/_srb2compiled
-    - After the zip file has been created/updated, it will then run the SRB2 executable in ``SRB2C_LOC``, with the ``-file`` parameter to run it
-    - Aditionally, this will print useful information such as runcount and datetime
+    - Requires the enviroment variable ``SRB2C_LOC``, which points to the user's SRB2 executable (or the SRB2 flatpak if available).
+    - Optionally reads the ``.SRB2C_VERSIONINFO`` file (in the same directory as this script) and generate a file based on it.
+    - Optionally reads the ``.SRB2C_ARGS`` file (first in mod, then in the same directory as this script). Defaults to ``-skipintro``
+    - Optionally zips the current directory in the ``SRB2C_DL`` enviroment variable. Otherwise, defaults to``SRB2C_LOC/DOWNLOAD/_srb2compiled``
+    - Runs the SRB2 executable in ``SRB2C_LOC``, with the ``-file`` parameter to run it
+    - Also prints information that may be useful such as runcount and datetime
     """
     import subprocess
     import datetime
@@ -431,12 +427,6 @@ def run(isGUI=None, multiCount=0, use_7zip=False):
     mod_dir = find_mod_directory()
     basedirname = os.path.basename(mod_dir)
     pk3name = "_"+basedirname+".pk3"
-
-    vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
-    BLUE = '\033[36m' if vscode else ''
-    YELLOW = '\033[93m' if vscode else ''
-    GREEN = '\033[32m' if vscode else ''
-    RESETCOLOR = '\033[0m' if vscode else ''
 
     if runcount == 0:
         current_dir_contents = os.listdir(mod_dir)
@@ -547,8 +537,6 @@ def run(isGUI=None, multiCount=0, use_7zip=False):
             else:
                 print(f"[{now}] Running test #{runcount+1}...")
         else:
-            RED = '\033[31m' if vscode else ''
-            BLUE = '\033[36m' if vscode else ''
             print(f"{RED}ERROR:{BLUE} Pk3 not detected, maybe I don't have file writing permissions?")
             gonnarun = False
         if gonnarun:
@@ -575,10 +563,42 @@ def run(isGUI=None, multiCount=0, use_7zip=False):
                 subprocess.run(args, cwd=os.path.dirname(srb2_loc))
             runcount = runcount + 1
     else:
-        GREEN = '\033[32m' if vscode else ''
-        RESETCOLOR = '\033[0m' if vscode else ''
-        RED = '\033[31m' if vscode else ''
-        print(f"{RED}No executable set for profile '{GREEN}{profile_name}{RED}'. Please run '{GREEN}profile set{RED}' to set it.")
+        if try_run_flatpak_srb2(subprocess, args if 'args' in locals() else [], pk3name, os.getcwd()):
+            runcount = runcount + 1
+        else:
+            print(f"{RED}No executable set for profile '{GREEN}{profile_name}{RED}'. Please run '{GREEN}profile set{RED}' to set it.")
+
+def try_run_flatpak_srb2(subprocess, args, pk3name, cwd):
+    """
+    Attempt to run SRB2 via Flatpak if installed.
+    Returns True if successful, False otherwise.
+    """
+    import sys
+    import shutil
+
+    if not sys.platform.startswith("linux"):
+        return False
+
+    if not shutil.which("flatpak"):
+        return False
+
+    try:
+        result = subprocess.run(
+            ["flatpak", "list", "--app", "--columns=application"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        if "org.srb2.SRB2" not in result.stdout:
+            return False
+    except Exception:
+        return False
+
+    flatpak_args = ["flatpak", "run", "org.srb2.SRB2", "-file", pk3name]
+    if len(args) > 3:
+        flatpak_args.extend(args[3:])
+
+    print(f"{GREEN}No executable set for profile, but found Flatpak SRB2. Running via Flatpak...{RESETCOLOR}")
+    subprocess.run(flatpak_args, cwd=cwd)
+    return True
 
 def get_environment_variable(variable: str):
     import platform
@@ -767,10 +787,6 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
         verbose(f"New zip file '{zip_name}' created successfully!")
 
 def sanitized_exe_filepath(user_input):
-    vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
-    RED = '\033[31m' if vscode else ''
-    BLUE = '\033[36m' if vscode else ''
-
     path = os.path.normpath(user_input)
     real_path = os.path.realpath(path)
     is_executable = False
@@ -796,10 +812,6 @@ def sanitized_exe_filepath(user_input):
     return path
 
 def sanitized_directory_path(user_input):
-    vscode = 'TERM_PROGRAM' if 'TERM_PROGRAM' in os.environ.keys() and os.environ['TERM_PROGRAM'] == 'vscode' else ''
-    RED = '\033[31m' if vscode else ''
-    BLUE = '\033[36m' if vscode else ''
-
     path = os.path.normpath(user_input)
     real_path = os.path.realpath(path)
 
