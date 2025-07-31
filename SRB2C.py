@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v7.3 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v8.0 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -43,7 +43,7 @@ def main():
     global isVerbose
 
     profile, name = get_active_profile()
-    status = GREEN+"ready" if profile["exe_path"] else RED+"not set"
+    status = GREEN+"ready" if profile["exe_path"] else (YELLOW+"optional" if os.name=="posix" else RED+"not set")
     
     print(BLUE, end="")
     print(f"Welcome to SRB2ModCompiler v2! Active profile '{GREEN}{name}{BLUE}' is {status}{BLUE}.")
@@ -408,6 +408,34 @@ def find_mod_directory():
     
     return mod_dir
 
+def build_and_move_pk3(mod_dir, srb2_dl, pk3name, use_7zip=False):
+    """
+    Build the PK3 file from mod_dir and move it to srb2_dl with the given pk3name.
+    """
+    import os
+    import subprocess
+
+    if not os.path.exists(srb2_dl):
+        os.makedirs(srb2_dl, exist_ok=True)
+    if use_7zip:
+        config = load_config()
+        if not config["7z_path"]:
+            print(f"7-Zip path not set. Please run '{GREEN}7z set{BLUE}' first.")
+            return False
+        zip_path = os.path.join(srb2_dl, pk3name)
+        subprocess.run([
+            config["7z_path"],
+            "a", "-tzip",
+            "-mx=9",
+            zip_path,
+            os.path.join(mod_dir, "*"),
+            "-x!*.py", "-x!*.pyw", "-x!*.md", "-x!LICENSE",
+            "-x!*.ase", "-x!.git*", "-x!.*"
+        ])
+    else:
+        create_or_update_zip(mod_dir, srb2_dl, pk3name)
+    return os.path.exists(os.path.join(srb2_dl, pk3name))
+
 def run(isGUI=None, multiCount=0, use_7zip=False):
     """
     I'm adding this comment because this function does a lot of things:
@@ -563,18 +591,19 @@ def run(isGUI=None, multiCount=0, use_7zip=False):
                 subprocess.run(args, cwd=os.path.dirname(srb2_loc))
             runcount = runcount + 1
     else:
-        if try_run_flatpak_srb2(subprocess, args if 'args' in locals() else [], pk3name, os.getcwd()):
+        if try_run_flatpak_srb2(subprocess, args if 'args' in locals() else [], pk3name, mod_dir, use_7zip):
             runcount = runcount + 1
         else:
             print(f"{RED}No executable set for profile '{GREEN}{profile_name}{RED}'. Please run '{GREEN}profile set{RED}' to set it.")
 
-def try_run_flatpak_srb2(subprocess, args, pk3name, cwd):
+def try_run_flatpak_srb2(subprocess, args, pk3name, mod_dir, use_7zip=False):
     """
-    Attempt to run SRB2 via Flatpak if installed.
+    Attempt to build/move PK3 and run SRB2 via Flatpak if installed.
     Returns True if successful, False otherwise.
     """
     import sys
     import shutil
+    import os
 
     if not sys.platform.startswith("linux"):
         return False
@@ -592,12 +621,21 @@ def try_run_flatpak_srb2(subprocess, args, pk3name, cwd):
     except Exception:
         return False
 
+    flatpak_home = os.path.expanduser("~/.var/app/org.srb2.SRB2")
+    flatpak_dl = os.path.join(flatpak_home, ".srb2", "addons", "_srb2compiled")
+    if not os.path.exists(flatpak_dl):
+        os.makedirs(flatpak_dl, exist_ok=True)
+
+    if not build_and_move_pk3(mod_dir, flatpak_dl, pk3name, use_7zip):
+        print(f"{RED}ERROR:{BLUE} Failed to build or move PK3 for Flatpak SRB2.")
+        return False
+
     flatpak_args = ["flatpak", "run", "org.srb2.SRB2", "-file", pk3name]
     if len(args) > 3:
         flatpak_args.extend(args[3:])
 
     print(f"{GREEN}No executable set for profile, but found Flatpak SRB2. Running via Flatpak...{RESETCOLOR}")
-    subprocess.run(flatpak_args, cwd=cwd)
+    subprocess.run(flatpak_args, cwd=flatpak_dl)
     return True
 
 def get_environment_variable(variable: str):
