@@ -1,27 +1,43 @@
 # SRB2ModCompiler v2
 A python script that enhances your [SRB2](https://www.srb2.org/) modding workflow!
 
-## How do I download just the script?
-View it here in github -> Raw -> Right Click -> Save as file
+<details><summary><b>Why is this helpful?</b></summary>
 
-## Why is this helpful?
-- Most importantly, it automates the process of saving your mod to a PK3, opening the game and loading your mod every time you want to test it
-- While compressed files - such as ZIP/WAD/PK3 - can be uploaded with git, you can't keep track of development (like which files were added, removed or modified in each commit/version)
-- Having your mod outside of a compressed file also allows mods to be edited more comfortably with apps other than [SLADE](https://github.com/sirjuddington/SLADE), I personally recommend [VS Code](https://code.visualstudio.com/), since it can run this script AND edit your mods like SLADE.
+- Most importantly, it automates the process of saving your mod's assets into a <span title=" The file type SRB2 expects for loading mods. It's just a renamed zip file." style="border-bottom:1px dotted; cursor: help;">pk3</span>, opening the game and loading your mod every time you want to test it
+- While <span title="ZIP, WAD, or PK3's" style="border-bottom:1px dotted; cursor: help;">compressed files</span> can be uploaded to <span title="Version control platforms. GitHub, GitLab, Codeberg, you name it." style="border-bottom:1px dotted; cursor: help;">git</span>, you can't <span title="like seeing exactly which lines of which files were modified in each version" style="border-bottom:1px dotted; cursor: help;">keep track of development</span> reliably
+- Having your mod outside of a compressed file also allows mods to be edited more comfortably with apps other than [SLADE](https://github.com/sirjuddington/SLADE). I personally recommend [VS Code](https://code.visualstudio.com/), since it can run this script *and* edit your lua files.
 
-## How to use this to test your mod
-- If your mod is in a compressed file, extract it to a folder with the ``unzip`` command
-- (SKIP IF YOU USE ``mod`` COMMAND) Drag and drop the .py file inside of the mod files, it should look something like [this](https://github.com/user-attachments/assets/b7f05909-e80d-4d2e-a339-4baa9795f128)
-- Run the .py file with [Python](https://www.python.org/) or [Visual Studio Code](https://code.visualstudio.com/), a terminal should open
-- If you haven't yet, tell it where your SRB2.exe is with the ``set`` command
-- Afterwards, everytime you simply press enter on the terminal (without a command), this script will automatically compile your mod and launch your game with it
+```
+TL;DR: This is tool is meant to make writing and testing code more convenient. With that said, you'll still probably rely on SLADE for graphics/sprite editing.
+```
+</details>
 
-<details><summary><b>What do you mean it "compiles" my mod?</b></summary>
+<details><summary><b>How do I download the script from GitHub?</b></summary>
+View -> Raw -> Right Click -> Save as file
 
-- It makes a pk3 file containing the contents (excluding some files, such as git files and itself) of the directory the script is located at (it will also use that to determine the name of the file). By default, this newly made pk3 will be located in (exe's dir)/DOWNLOAD/_srb2compiled, but it can be changed with the ``downloads`` command
+</details>
+
+<details><summary><b>I ran the script, but I'm lost. How do I set this up?</b></summary>
+
+- Run the script with [Python](https://www.python.org/) or [Visual Studio Code](https://code.visualstudio.com/), a terminal should open
+- **(Skip if your mod's assets are not zipped)** Use the ``unzip`` command
+- **(Skip if you use the ``mod`` command)** Drag and drop the script in the mod's assets, it should look something like [this](https://github.com/user-attachments/assets/b7f05909-e80d-4d2e-a339-4baa9795f128)
+- **(Skip if your SRB2 is in flatpak)** If you haven't yet, tell it where your SRB2.exe is with the ``set`` command
+
+You're done! Now, every time you simply <span title="without any commands" style="border-bottom:1px dotted; cursor: help;">press enter</span> on the terminal, this script will automatically compile your mod and launch your game with it
+</details>
+
+<details><summary><b>What do you mean it "compiles" my mod? Is it customizable?</b></summary>
+
+- It makes a pk3 file containing the contents (excluding some files, such as git files and itself) of the directory the script is located at (it will also use that to determine the name of the file).
+
+By default, this newly made pk3 is made in <span title="(exe's dir)/DOWNLOAD/_srb2compiled" style="border-bottom:1px dotted; cursor: help;">DOWNLOAD</span>, but it can be changed with the ``downloads`` command
 - Opens your SRB2 executable
 - Skips the intro
 - Loads your mod (with custom parameters if you've used the ``args`` command)
 - And wishes you a happy testing session!
 
 </details>
+
+## Contributing
+Contributions are welcome! Please submit a pull request or open an issue for any suggestions or improvements.
