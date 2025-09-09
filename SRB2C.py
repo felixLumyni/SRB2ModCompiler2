@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v8.0 by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v8.1 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -772,7 +772,9 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
 
                 # Process the source directory
                 verbose("Processing source directory...")
-                for root, _, files in os.walk(source_path):
+                for root, dirs, files in os.walk(source_path):
+                    dirs.sort()
+                    files.sort()
                     for file in files:
                         source_file_path = os.path.join(root, file)
                         rel_path = os.path.relpath(source_file_path, source_path)
@@ -812,7 +814,9 @@ def create_or_update_zip(source_path: str, destination_path: str, zip_name: str)
         # If the destination zip file doesn't exist, create a new one
         with zipfile.ZipFile(zip_full_path, 'w', compression=compressionmethod) as new_zip:
             verbose("Processing source directory and adding files to the new zip...")
-            for root, _, files in os.walk(source_path):
+            for root, dirs, files in os.walk(source_path):
+                dirs.sort()
+                files.sort()
                 for file in files:
                     source_file_path = os.path.join(root, file)
                     rel_path = os.path.relpath(source_file_path, source_path)
