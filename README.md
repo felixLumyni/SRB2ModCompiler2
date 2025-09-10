@@ -1,3 +1,8 @@
+```
+This is not the main branch!
+However it will be merged eventually.
+```
+
 # SRB2ModCompiler v2
 A python script that enhances your [SRB2](https://www.srb2.org/) modding workflow!
 
