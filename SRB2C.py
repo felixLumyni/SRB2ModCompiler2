@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v8.2B by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v8.3B by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -472,7 +472,8 @@ def run(isGUI=None, multiCount=0, use_7zip=False):
                 os.path.expanduser("~/.var/app/org.srb2.SRB2"),
                 ".srb2", "addons", "_srb2compiled"
             )
-            print(f"{GREEN}No executable set for profile, using Flatpak SRB2...{BLUE}")
+            if runcount == 0:
+                print(f"{GREEN}No executable set for profile, using Flatpak SRB2...{BLUE}")
         else:
             print(f"{RED}No executable set for profile '{GREEN}{profile_name}{RED}'. Please run '{GREEN}profile set{RED}' to set it.")
             return
@@ -586,7 +587,22 @@ def run(isGUI=None, multiCount=0, use_7zip=False):
         else:
             # Normal single instance launch
             args = srb2_loc.split() + ["-file", pk3name] + extraargs
-            subprocess.run(args, cwd=cwd)
+            process = subprocess.Popen(args, cwd=cwd,
+                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                       universal_newlines=True, bufsize=1, errors="replace")
+
+            for line in process.stdout:
+                line = line.strip()
+                if any(keyword in line for keyword in ['ERROR']):
+                    print(f"{RED}{line}{BLUE}")
+                elif any(keyword in line for keyword in ['WARNING']):
+                    if any(keyword in line for keyword in ['multicast']):
+                        pass
+                    else:
+                        print(f"{YELLOW}{line}{BLUE}")
+                        
+            process.wait()
+
         runcount = runcount + 1
 
 def check_flatpak_availability():
