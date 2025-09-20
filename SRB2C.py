@@ -1,5 +1,5 @@
 '''
-# SRB2ModCompiler v8.3B by Lumyni (felixlumyni on discord)
+# SRB2ModCompiler v8.2 by Lumyni (felixlumyni on discord)
 # Requires https://www.python.org/
 # Messes w/ files, only edit this if you know what you're doing!
 '''
@@ -515,17 +515,16 @@ def run(isGUI=None, multiCount=0, use_7zip=False):
             verbose(f"[{now}] {GREEN}.SRB2C_ARGS{BLUE} file not found, so we will be using the default parameter: {GREEN}-skipintro{BLUE}")
         extraargs = ["-skipintro"]
 
+    prefiles = []
     if "-prefile" in extraargs:
         prefile_index = extraargs.index("-prefile")
         if prefile_index + 1 < len(extraargs):
-            prefile = extraargs[prefile_index + 1]
+            prefiles.append(extraargs[prefile_index + 1])
             extraargs = extraargs[:prefile_index] + extraargs[prefile_index + 2:]
-            args = [srb2_loc, "-file", prefile, pk3name]
         else:
             print("Warning: -prefile parameter is present but no file specified. Ignoring -prefile.")
-            args = [srb2_loc, "-file", pk3name]
-    else:
-        args = [srb2_loc, "-file", pk3name]
+
+    args = [srb2_loc, "-file", pk3name]
     args.extend(extraargs)
 
     # Zip the project into a pk3!
@@ -568,13 +567,17 @@ def run(isGUI=None, multiCount=0, use_7zip=False):
         cwd = srb2_dl if is_flatpak else os.path.dirname(srb2_loc)
 
         if multiCount > 0:
+            files = ["-file"]
+            files.extend(prefiles)
+            files.append(pk3name)
+
             # First launch dedicated server
-            server_args = srb2_loc.split() + ["-file", pk3name] + extraargs + ["-dedicated"]
+            server_args = srb2_loc.split() + files + extraargs + ["-dedicated"]
             subprocess.Popen(server_args, cwd=cwd)
             
             # Launch client instances
             for _ in range(multiCount):
-                client_args = srb2_loc.split() + ["-file", pk3name] + extraargs
+                client_args = srb2_loc.split() + files + extraargs
                 if "-server" in client_args:
                     client_args.pop(client_args.index("-server"))
                 if "-warp" in client_args:
@@ -586,7 +589,10 @@ def run(isGUI=None, multiCount=0, use_7zip=False):
                 subprocess.Popen(client_args, cwd=cwd)
         else:
             # Normal single instance launch
-            args = srb2_loc.split() + ["-file", pk3name] + extraargs
+            files = ["-file"]
+            files.extend(prefiles)
+            files.append(pk3name)
+            args = srb2_loc.split() + files + extraargs
             process = subprocess.Popen(args, cwd=cwd,
                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                        universal_newlines=True, bufsize=1, errors="replace")
